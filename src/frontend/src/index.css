@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+:root {
+  /* Fijo en claro a propósito: la UI todavía no tiene un tema oscuro propio.
+     Con "light dark" el navegador pinta inputs con estilos nativos de modo oscuro
+     (texto blanco sobre fondo transparente) cuando el SO está en modo oscuro,
+     lo que los vuelve ilegibles sobre las tarjetas claras de la app. */
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+}
+
+#root {
+  min-height: 100svh;
+}

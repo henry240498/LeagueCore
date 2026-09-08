@@ -1,0 +1,42 @@
+// Lista estática para el <datalist> de nacionalidad — sólo sugerencias de autocompletado, NO un
+// catálogo administrable ni una tabla en base de datos. El campo sigue siendo texto libre (mismo
+// criterio que competition_type/sport/status): esto reduce errores de tipeo sin construir un
+// módulo de Configuración/Parametrización para una sola lista. Un catálogo real con código ISO
+// (útil para futuras importaciones desde fuentes externas) queda documentado como pendiente.
+export const COUNTRY_SUGGESTIONS = [
+  'Paraguay',
+  'Argentina',
+  'Brasil',
+  'Uruguay',
+  'Chile',
+  'Bolivia',
+  'Perú',
+  'Colombia',
+  'Ecuador',
+  'Venezuela',
+  'México',
+  'Estados Unidos',
+  'España',
+  'Portugal',
+  'Italia',
+  'Francia',
+  'Alemania',
+  'Inglaterra',
+  'Países Bajos',
+  'Bélgica',
+  'Croacia',
+  'Serbia',
+  'Costa Rica',
+  'Panamá',
+  'Honduras',
+  'Guatemala',
+  'Japón',
+  'Corea del Sur',
+  'Nigeria',
+  'Camerún',
+  'Senegal',
+  'Ghana',
+  'Marruecos',
+  'Argelia',
+  'Egipto',
+]

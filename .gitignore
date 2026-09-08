@@ -1,0 +1,32 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+build/
+
+# Variables de entorno reales (usar .env.example como referencia)
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Archivos subidos por el admin (logos/fondos del Login, fotos de Jugadores/Oficiales) — no
+# versionar binarios
+src/backend/uploads/login/*
+!src/backend/uploads/login/.gitkeep
+src/backend/uploads/players/*
+!src/backend/uploads/players/.gitkeep
+src/backend/uploads/officials/*
+!src/backend/uploads/officials/.gitkeep
+
+# Editor / SO
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# Datasets/paquetes grandes (no versionar en git)
+open-data-master.zip
