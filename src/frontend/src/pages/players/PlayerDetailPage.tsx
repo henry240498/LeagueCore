@@ -99,6 +99,13 @@ export default function PlayerDetailPage() {
           <div className="flex gap-2">
             <button
               type="button"
+              onClick={() => navigate(`/jugadores/${player.id}/expediente`)}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              📋 Expediente
+            </button>
+            <button
+              type="button"
               onClick={() => navigate(`/jugadores/${player.id}/editar`)}
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
             >

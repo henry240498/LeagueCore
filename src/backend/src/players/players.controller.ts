@@ -22,7 +22,10 @@ import { IsIn } from 'class-validator';
 import { diskStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ProvenanceService } from '../research/provenance.service';
+import { CreatePhysicalRecordDto } from './dto/create-physical-record.dto';
 import { CreatePlayerDto } from './dto/create-player.dto';
+import { CreateInjuryDto, UpdateInjuryDto } from './dto/injury.dto';
+import { SaveTechnicalRatingsDto } from './dto/save-technical-ratings.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
 import { PlayersService } from './players.service';
 
@@ -90,6 +93,60 @@ export class PlayersController {
   @Get(':id/positions')
   listPositions(@Param('id', ParseIntPipe) id: number) {
     return this.service.listPositions(id);
+  }
+
+  // Expediente avanzado (Fase 2): perfil fisico, tecnico 1-100 y lesiones.
+  @Get(':id/profile')
+  getProfile(@Param('id', ParseIntPipe) id: number) {
+    return this.service.getProfile(id);
+  }
+
+  @Get(':id/physical')
+  listPhysical(@Param('id', ParseIntPipe) id: number, @Query('limit') limit?: string) {
+    return this.service.listPhysical(id, limit ? Number(limit) : undefined);
+  }
+
+  @Post(':id/physical')
+  addPhysical(@Param('id', ParseIntPipe) id: number, @Body() dto: CreatePhysicalRecordDto) {
+    return this.service.addPhysical(id, dto);
+  }
+
+  @Get(':id/technical')
+  getTechnical(@Param('id', ParseIntPipe) id: number) {
+    return this.service.getTechnical(id);
+  }
+
+  @Put(':id/technical')
+  saveTechnical(@Param('id', ParseIntPipe) id: number, @Body() dto: SaveTechnicalRatingsDto) {
+    return this.service.saveTechnical(id, dto);
+  }
+
+  @Get(':id/injuries')
+  listInjuries(@Param('id', ParseIntPipe) id: number) {
+    return this.service.listInjuries(id);
+  }
+
+  @Post(':id/injuries')
+  addInjury(@Param('id', ParseIntPipe) id: number, @Body() dto: CreateInjuryDto) {
+    return this.service.addInjury(id, dto);
+  }
+
+  @Put(':id/injuries/:injuryId')
+  updateInjury(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('injuryId', ParseIntPipe) injuryId: number,
+    @Body() dto: UpdateInjuryDto,
+  ) {
+    return this.service.updateInjury(id, injuryId, dto);
+  }
+
+  @Delete(':id/injuries/:injuryId')
+  async removeInjury(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('injuryId', ParseIntPipe) injuryId: number,
+  ) {
+    await this.service.removeInjury(id, injuryId);
+    return { message: 'Lesión eliminada' };
   }
 
   @Post()

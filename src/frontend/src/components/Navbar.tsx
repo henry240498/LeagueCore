@@ -10,6 +10,7 @@ const GROUPS: NavGroup[] = [
   {
     label: 'Gestión',
     items: [
+      { to: '/clubes', label: 'Clubes' },
       { to: '/competiciones', label: 'Competiciones' },
       { to: '/temporadas', label: 'Temporadas' },
       { to: '/equipos', label: 'Equipos' },
@@ -22,8 +23,27 @@ const GROUPS: NavGroup[] = [
     label: 'Análisis',
     items: [
       { to: '/estadisticas', label: 'Estadísticas' },
+      { to: '/jugadas', label: 'Jugadas' },
+      { to: '/metricas', label: 'Métricas' },
       { to: '/comparador', label: 'Comparador' },
       { to: '/reportes', label: 'Reportes' },
+      { to: '/reportes/plantillas', label: 'Armar informes' },
+    ],
+  },
+  {
+    label: 'Scouting',
+    items: [
+      { to: '/scouting/rivales', label: 'Rivales' },
+      { to: '/scouting/jugadores', label: 'Jugadores' },
+      { to: '/scouting/seguimiento', label: 'Seguimiento' },
+    ],
+  },
+  {
+    label: 'Operativa',
+    items: [
+      { to: '/entrenamientos', label: 'Entrenamientos' },
+      { to: '/operativa', label: 'Centro operativo' },
+      { to: '/asistente', label: 'Asistente IA' },
     ],
   },
 ]

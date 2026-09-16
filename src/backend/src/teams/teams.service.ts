@@ -17,6 +17,8 @@ const COLUMN_MAP: Record<string, string> = {
   logoUrl: 'logo_url',
   status: 'status',
   addedPoints: 'added_points',
+  clubId: 'club_id',
+  category: 'category',
 };
 
 function toCamel(row: Record<string, any>) {
@@ -141,6 +143,9 @@ export class TeamsService {
     if (dto.competitionId !== undefined) {
       await this.assertCompetitionExists(dto.competitionId);
     }
+    if (dto.clubId !== undefined && dto.clubId !== null) {
+      await this.assertClubExists(dto.clubId);
+    }
 
     const request = this.pool.request();
     const columns: string[] = [];
@@ -166,6 +171,9 @@ export class TeamsService {
     await this.getById(id);
     if (dto.competitionId !== undefined) {
       await this.assertCompetitionExists(dto.competitionId);
+    }
+    if (dto.clubId !== undefined && dto.clubId !== null) {
+      await this.assertClubExists(dto.clubId);
     }
 
     const entries = Object.entries(dto).filter(([, v]) => v !== undefined);
@@ -239,6 +247,16 @@ export class TeamsService {
       .query('SELECT TOP 1 1 FROM dbo.competitions WHERE id = @id');
     if (result.recordset.length === 0) {
       throw new BadRequestException('La competición indicada no existe');
+    }
+  }
+
+  private async assertClubExists(clubId: number) {
+    const result = await this.pool
+      .request()
+      .input('id', sql.Int, clubId)
+      .query('SELECT TOP 1 1 FROM dbo.clubs WHERE id = @id');
+    if (result.recordset.length === 0) {
+      throw new BadRequestException('El club indicado no existe');
     }
   }
 }

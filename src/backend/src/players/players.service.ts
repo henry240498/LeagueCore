@@ -1,7 +1,10 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import * as sql from 'mssql';
 import { SQL_POOL } from '../database/database.module';
+import { CreatePhysicalRecordDto } from './dto/create-physical-record.dto';
 import { CreatePlayerDto } from './dto/create-player.dto';
+import { CreateInjuryDto, UpdateInjuryDto } from './dto/injury.dto';
+import { SaveTechnicalRatingsDto } from './dto/save-technical-ratings.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
 
 const COLUMN_MAP: Record<string, string> = {
@@ -13,6 +16,8 @@ const COLUMN_MAP: Record<string, string> = {
   position: 'position',
   squadNumber: 'squad_number',
   heightCm: 'height_cm',
+  weightKg: 'weight_kg',
+  contractStatus: 'contract_status',
   preferredFoot: 'preferred_foot',
   teamId: 'team_id',
   status: 'status',
@@ -31,6 +36,8 @@ const COLUMN_TYPES: Record<string, (() => sql.ISqlType) | sql.ISqlType> = {
   position: sql.NVarChar,
   squad_number: sql.SmallInt,
   height_cm: sql.SmallInt,
+  weight_kg: sql.SmallInt,
+  contract_status: sql.NVarChar,
   preferred_foot: sql.NVarChar,
   team_id: sql.Int,
   status: sql.NVarChar,
@@ -54,6 +61,60 @@ function toCamel(row: Record<string, any>) {
   }
   if (row.team_name !== undefined) out.teamName = row.team_name;
   return out;
+}
+
+function toPhysicalCamel(r: Record<string, any>) {
+  return {
+    id: r.id,
+    playerId: r.player_id,
+    recordedAt: r.recorded_at,
+    maxSpeedKmh: r.max_speed_kmh,
+    avgSpeedKmh: r.avg_speed_kmh,
+    distanceM: r.distance_m,
+    hiDistanceM: r.hi_distance_m,
+    sprints: r.sprints,
+    accelerations: r.accelerations,
+    decelerations: r.decelerations,
+    directionChanges: r.direction_changes,
+    hiMinutes: r.hi_minutes,
+    playerLoad: r.player_load,
+    acwr: r.acwr,
+    heartRateAvg: r.heart_rate_avg,
+    externalLoad: r.external_load,
+    internalLoad: r.internal_load,
+    fatigue: r.fatigue,
+    availability: r.availability,
+    source: r.source,
+    note: r.note,
+    createdAt: r.created_at,
+  };
+}
+
+function toTechnicalCamel(r: Record<string, any>) {
+  return {
+    id: r.id,
+    playerId: r.player_id,
+    attribute: r.attribute,
+    value: r.value,
+    evaluatedAt: r.evaluated_at,
+    evaluator: r.evaluator,
+  };
+}
+
+function toInjuryCamel(r: Record<string, any>) {
+  return {
+    id: r.id,
+    playerId: r.player_id,
+    injuryType: r.injury_type,
+    bodyPart: r.body_part,
+    severity: r.severity,
+    startDate: r.start_date,
+    endDate: r.end_date,
+    status: r.status,
+    note: r.note,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
 }
 
 export interface ListQuery {
@@ -356,6 +417,209 @@ export class PlayersService {
          SET squad_number = @squad_number, updated_at = SYSUTCDATETIME()
          WHERE player_id = @player_id AND end_date IS NULL`,
       );
+  }
+
+  // --- Expediente avanzado (Fase 2) -------------------------------------------
+  // Perfil agregado: jugador + ultimo fisico + tecnica vigente + lesion activa + evolucion.
+
+  async getProfile(id: number) {
+    const player = await this.getById(id);
+    const [physical, technical, injuries] = await Promise.all([
+      this.listPhysical(id, 12),
+      this.getTechnical(id),
+      this.listInjuries(id),
+    ]);
+    const activeInjury = injuries.find((i) => i.status === 'ACTIVA') ?? null;
+    return {
+      player,
+      physicalLatest: physical[0] ?? null,
+      physicalEvolution: [...physical].reverse(),
+      technical,
+      activeInjury,
+      injuriesCount: injuries.length,
+    };
+  }
+
+  async listPhysical(playerId: number, limit = 30) {
+    await this.assertPlayerExists(playerId);
+    const result = await this.pool
+      .request()
+      .input('player_id', sql.Int, playerId)
+      .input('limit_n', sql.Int, Math.min(Math.max(limit, 1), 100))
+      .query(
+        `SELECT TOP (@limit_n) * FROM dbo.player_physical_records
+         WHERE player_id = @player_id ORDER BY recorded_at DESC, id DESC`,
+      );
+    return result.recordset.map(toPhysicalCamel);
+  }
+
+  async addPhysical(playerId: number, dto: CreatePhysicalRecordDto) {
+    await this.assertPlayerExists(playerId);
+    const result = await this.pool
+      .request()
+      .input('player_id', sql.Int, playerId)
+      .input('recorded_at', sql.Date, dto.recordedAt ?? new Date())
+      .input('max_speed_kmh', sql.Decimal(5, 2), dto.maxSpeedKmh ?? null)
+      .input('avg_speed_kmh', sql.Decimal(5, 2), dto.avgSpeedKmh ?? null)
+      .input('distance_m', sql.Int, dto.distanceM ?? null)
+      .input('hi_distance_m', sql.Int, dto.hiDistanceM ?? null)
+      .input('sprints', sql.Int, dto.sprints ?? null)
+      .input('accelerations', sql.Int, dto.accelerations ?? null)
+      .input('decelerations', sql.Int, dto.decelerations ?? null)
+      .input('direction_changes', sql.Int, dto.directionChanges ?? null)
+      .input('hi_minutes', sql.Int, dto.hiMinutes ?? null)
+      .input('player_load', sql.Decimal(8, 2), dto.playerLoad ?? null)
+      .input('acwr', sql.Decimal(4, 2), dto.acwr ?? null)
+      .input('heart_rate_avg', sql.SmallInt, dto.heartRateAvg ?? null)
+      .input('external_load', sql.Decimal(8, 2), dto.externalLoad ?? null)
+      .input('internal_load', sql.Decimal(8, 2), dto.internalLoad ?? null)
+      .input('fatigue', sql.SmallInt, dto.fatigue ?? null)
+      .input('availability', sql.NVarChar, dto.availability ?? 'DISPONIBLE')
+      .input('source', sql.NVarChar, dto.source ?? 'manual')
+      .input('note', sql.NVarChar, dto.note ?? null)
+      .query(
+        `INSERT INTO dbo.player_physical_records
+          (player_id, recorded_at, max_speed_kmh, avg_speed_kmh, distance_m, hi_distance_m,
+           sprints, accelerations, decelerations, direction_changes, hi_minutes, player_load, acwr,
+           heart_rate_avg, external_load, internal_load, fatigue, availability, source, note)
+         OUTPUT INSERTED.id
+         VALUES (@player_id, @recorded_at, @max_speed_kmh, @avg_speed_kmh, @distance_m, @hi_distance_m,
+           @sprints, @accelerations, @decelerations, @direction_changes, @hi_minutes, @player_load, @acwr,
+           @heart_rate_avg, @external_load, @internal_load, @fatigue, @availability, @source, @note)`,
+      );
+    const created = await this.pool
+      .request()
+      .input('id', sql.Int, result.recordset[0].id)
+      .query('SELECT * FROM dbo.player_physical_records WHERE id = @id');
+    return toPhysicalCamel(created.recordset[0]);
+  }
+
+  async getTechnical(playerId: number) {
+    await this.assertPlayerExists(playerId);
+    const result = await this.pool
+      .request()
+      .input('player_id', sql.Int, playerId)
+      .query(
+        `SELECT r.* FROM dbo.player_technical_ratings r
+         JOIN (SELECT attribute, MAX(evaluated_at) AS max_date
+               FROM dbo.player_technical_ratings WHERE player_id = @player_id GROUP BY attribute) m
+           ON m.attribute = r.attribute AND m.max_date = r.evaluated_at
+         WHERE r.player_id = @player_id`,
+      );
+    return result.recordset.map(toTechnicalCamel);
+  }
+
+  async saveTechnical(playerId: number, dto: SaveTechnicalRatingsDto) {
+    await this.assertPlayerExists(playerId);
+    if (!dto.ratings?.length) throw new BadRequestException('Debe enviar al menos una valoración');
+    const evaluatedAt = dto.evaluatedAt ?? new Date().toISOString().slice(0, 10);
+    for (const item of dto.ratings) {
+      if (item.value < 1 || item.value > 100) {
+        throw new BadRequestException(`Valor fuera de rango (1-100) para ${item.attribute}`);
+      }
+      await this.pool
+        .request()
+        .input('player_id', sql.Int, playerId)
+        .input('attribute', sql.NVarChar, item.attribute)
+        .input('value', sql.SmallInt, item.value)
+        .input('evaluated_at', sql.Date, evaluatedAt)
+        .input('evaluator', sql.NVarChar, dto.evaluator ?? null)
+        .query(
+          `MERGE dbo.player_technical_ratings AS t
+           USING (SELECT @player_id AS player_id, @attribute AS attribute, @evaluated_at AS evaluated_at) AS s
+           ON t.player_id = s.player_id AND t.attribute = s.attribute AND t.evaluated_at = s.evaluated_at
+           WHEN MATCHED THEN UPDATE SET value = @value, evaluator = @evaluator
+           WHEN NOT MATCHED THEN INSERT (player_id, attribute, value, evaluated_at, evaluator)
+             VALUES (@player_id, @attribute, @value, @evaluated_at, @evaluator);`,
+        );
+    }
+    return this.getTechnical(playerId);
+  }
+
+  async listInjuries(playerId: number) {
+    await this.assertPlayerExists(playerId);
+    const result = await this.pool
+      .request()
+      .input('player_id', sql.Int, playerId)
+      .query('SELECT * FROM dbo.player_injuries WHERE player_id = @player_id ORDER BY start_date DESC, id DESC');
+    return result.recordset.map(toInjuryCamel);
+  }
+
+  async addInjury(playerId: number, dto: CreateInjuryDto) {
+    await this.assertPlayerExists(playerId);
+    const result = await this.pool
+      .request()
+      .input('player_id', sql.Int, playerId)
+      .input('injury_type', sql.NVarChar, dto.injuryType)
+      .input('body_part', sql.NVarChar, dto.bodyPart ?? null)
+      .input('severity', sql.NVarChar, dto.severity ?? null)
+      .input('start_date', sql.Date, dto.startDate)
+      .input('end_date', sql.Date, dto.endDate ?? null)
+      .input('note', sql.NVarChar, dto.note ?? null)
+      .query(
+        `INSERT INTO dbo.player_injuries (player_id, injury_type, body_part, severity, start_date, end_date, note)
+         OUTPUT INSERTED.id VALUES (@player_id, @injury_type, @body_part, @severity, @start_date, @end_date, @note)`,
+      );
+    const created = await this.pool
+      .request()
+      .input('id', sql.Int, result.recordset[0].id)
+      .query('SELECT * FROM dbo.player_injuries WHERE id = @id');
+    return toInjuryCamel(created.recordset[0]);
+  }
+
+  async updateInjury(playerId: number, injuryId: number, dto: UpdateInjuryDto) {
+    await this.assertPlayerExists(playerId);
+    const existing = await this.pool
+      .request()
+      .input('id', sql.Int, injuryId)
+      .input('player_id', sql.Int, playerId)
+      .query('SELECT id FROM dbo.player_injuries WHERE id = @id AND player_id = @player_id');
+    if (existing.recordset.length === 0) throw new NotFoundException('Lesión no encontrada');
+    const map: Record<string, string> = {
+      injuryType: 'injury_type',
+      bodyPart: 'body_part',
+      severity: 'severity',
+      startDate: 'start_date',
+      endDate: 'end_date',
+      status: 'status',
+      note: 'note',
+    };
+    const entries = Object.entries(dto).filter(([, v]) => v !== undefined);
+    if (entries.length > 0) {
+      const request = this.pool.request();
+      const sets: string[] = [];
+      for (const [camel, value] of entries) {
+        const column = map[camel];
+        if (!column) continue;
+        request.input(column, value);
+        sets.push(`${column} = @${column}`);
+      }
+      sets.push('updated_at = SYSUTCDATETIME()');
+      request.input('id', sql.Int, injuryId);
+      await request.query(`UPDATE dbo.player_injuries SET ${sets.join(', ')} WHERE id = @id`);
+    }
+    const updated = await this.pool
+      .request()
+      .input('id', sql.Int, injuryId)
+      .query('SELECT * FROM dbo.player_injuries WHERE id = @id');
+    return toInjuryCamel(updated.recordset[0]);
+  }
+
+  async removeInjury(playerId: number, injuryId: number) {
+    await this.assertPlayerExists(playerId);
+    await this.pool
+      .request()
+      .input('id', sql.Int, injuryId)
+      .input('player_id', sql.Int, playerId)
+      .query('DELETE FROM dbo.player_injuries WHERE id = @id AND player_id = @player_id');
+  }
+
+  private async assertPlayerExists(playerId: number) {
+    const result = await this.pool
+      .request()
+      .input('id', sql.Int, playerId)
+      .query('SELECT TOP 1 1 FROM dbo.players WHERE id = @id');
+    if (result.recordset.length === 0) throw new NotFoundException('Jugador no encontrado');
   }
 
   // Posiciones reales de este jugador a través de TODOS sus partidos (dbo.match_player_positions,

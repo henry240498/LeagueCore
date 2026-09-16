@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "PROJECT_ID": "leaguecore",
+  "PROJECT_NAME": "LeagueCore",
+  "TYPE": "web",
+  "TECH_STACK": "NestJS 10, React/Vite; SQL Server",
+  "TECH_STACK_SOURCE": [
+    "src/backend/package.json",
+    "src/frontend/package.json"
+  ],
+  "ENVIRONMENT": "NO DETERMINADO",
+  "STATUS": "NO DETERMINADO",
+  "OBSERVED_STATE": "Aplicación deportiva en desarrollo con cambios locales.",
+  "VERSION_SOURCE": [
+    "src/backend/package.json",
+    "src/frontend/package.json"
+  ],
+  "LAST_CONTEXT_UPDATE": "2026-09-14",
+  "LAST_VALIDATION": {
+    "date": "NO DETERMINADO",
+    "revision": "NO DETERMINADO",
+    "command": "NO DETERMINADO",
+    "result": "NO DETERMINADO"
+  },
+  "LAST_DEPLOY": "NO DETERMINADO",
+  "EXTERNAL_DEPENDENCIES": "Node y SQL Server.",
+  "CONFIG_SOURCES": [],
+  "SOURCE_HASHES": {
+    "src/backend/package.json": "02d5098e2e1c6bd09391c3da454a5804935e3b1469c5199199bdc3078084deb5",
+    "src/frontend/package.json": "e8171db44c10bf9075a80e0a03b4ac215d265964b0c7dad198f3a65ed782b820"
+  },
+  "VAULTS_ROOT_RELATIVE": "../Vaults/jmartinez"
+}

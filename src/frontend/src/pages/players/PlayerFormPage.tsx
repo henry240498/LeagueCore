@@ -27,6 +27,8 @@ export default function PlayerFormPage() {
     position: '',
     squadNumber: undefined,
     heightCm: undefined,
+    weightKg: undefined,
+    contractStatus: '',
     preferredFoot: '',
     teamId: Number(searchParams.get('teamId')) || null,
     status: 'active',
@@ -61,6 +63,8 @@ export default function PlayerFormPage() {
           position: p.position ?? '',
           squadNumber: p.squadNumber ?? undefined,
           heightCm: p.heightCm ?? undefined,
+          weightKg: p.weightKg ?? undefined,
+          contractStatus: p.contractStatus ?? '',
           preferredFoot: p.preferredFoot ?? '',
           teamId: p.teamId,
           status: p.status,
@@ -164,6 +168,8 @@ export default function PlayerFormPage() {
         position: form.position || null,
         squadNumber: form.squadNumber || null,
         heightCm: form.heightCm || null,
+        weightKg: form.weightKg || null,
+        contractStatus: form.contractStatus || null,
         preferredFoot: form.preferredFoot || null,
         teamId: form.teamId || null,
       }
@@ -337,6 +343,14 @@ export default function PlayerFormPage() {
               min={120}
               max={230}
             />
+            <Field
+              label="Peso (kg)"
+              type="number"
+              value={form.weightKg?.toString() ?? ''}
+              onChange={(v) => set('weightKg', v ? Number(v) : undefined)}
+              min={30}
+              max={200}
+            />
             <div>
               <label htmlFor="player-foot" className="mb-1 block text-sm font-medium text-slate-700">
                 Pie dominante
@@ -351,6 +365,25 @@ export default function PlayerFormPage() {
                 <option value="izquierdo">Izquierdo</option>
                 <option value="derecho">Derecho</option>
                 <option value="ambidiestro">Ambidiestro</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="player-contract" className="mb-1 block text-sm font-medium text-slate-700">
+                Estado contractual
+              </label>
+              <select
+                id="player-contract"
+                value={form.contractStatus ?? ''}
+                onChange={(e) => set('contractStatus', e.target.value)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Sin especificar</option>
+                <option value="VIGENTE">Vigente</option>
+                <option value="POR_VENCER">Por vencer</option>
+                <option value="VENCIDO">Vencido</option>
+                <option value="A_PRESTAMO">A préstamo</option>
+                <option value="LIBRE">Libre</option>
+                <option value="JUVENIL">Juvenil</option>
               </select>
             </div>
           </div>

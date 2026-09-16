@@ -3,6 +3,9 @@ import AppLayout from './components/AppLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import ChangePasswordFirstLoginPage from './pages/ChangePasswordFirstLoginPage'
 import ComparePage from './pages/ComparePage'
+import ClubDetailPage from './pages/clubs/ClubDetailPage'
+import ClubFormPage from './pages/clubs/ClubFormPage'
+import ClubsListPage from './pages/clubs/ClubsListPage'
 import CompetitionDetailPage from './pages/competitions/CompetitionDetailPage'
 import CompetitionFormPage from './pages/competitions/CompetitionFormPage'
 import CompetitionsListPage from './pages/competitions/CompetitionsListPage'
@@ -10,6 +13,7 @@ import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
 import MatchDetailPage from './pages/matches/MatchDetailPage'
 import MatchFormPage from './pages/matches/MatchFormPage'
+import LiveMatchPage from './pages/matches/LiveMatchPage'
 import MatchesListPage from './pages/matches/MatchesListPage'
 import OfficialDetailPage from './pages/officials/OfficialDetailPage'
 import OfficialFormPage from './pages/officials/OfficialFormPage'
@@ -18,6 +22,7 @@ import OfficialTypesPage from './pages/officials/OfficialTypesPage'
 import ParametersPage from './pages/parameters/ParametersPage'
 import PlayerDetailPage from './pages/players/PlayerDetailPage'
 import PlayerFormPage from './pages/players/PlayerFormPage'
+import PlayerProfilePage from './pages/players/PlayerProfilePage'
 import PlayersListPage from './pages/players/PlayersListPage'
 import ProfilePage from './pages/ProfilePage'
 import AuditReportPage from './pages/reports/AuditReportPage'
@@ -30,6 +35,7 @@ import PlayerProfileReportPage from './pages/reports/PlayerProfileReportPage'
 import PlayersReportPage from './pages/reports/PlayersReportPage'
 import RefereesReportPage from './pages/reports/RefereesReportPage'
 import ReportsHubPage from './pages/reports/ReportsHubPage'
+import ReportBuilderPage from './pages/reports/ReportBuilderPage'
 import TeamProfileReportPage from './pages/reports/TeamProfileReportPage'
 import TeamsReportPage from './pages/reports/TeamsReportPage'
 import VenuesReportPage from './pages/reports/VenuesReportPage'
@@ -38,6 +44,14 @@ import SeasonFormPage from './pages/seasons/SeasonFormPage'
 import SeasonsListPage from './pages/seasons/SeasonsListPage'
 import SecurityPage from './pages/SecurityPage'
 import StatisticsPage from './pages/StatisticsPage'
+import MetricsPage from './pages/tactics/MetricsPage'
+import PlaysLibraryPage from './pages/tactics/PlaysLibraryPage'
+import PlayersScoutingPage from './pages/scouting/PlayersScoutingPage'
+import RivalsPage from './pages/scouting/RivalsPage'
+import WatchlistPage from './pages/scouting/WatchlistPage'
+import OperationsPage from './pages/operations/OperationsPage'
+import TrainingsPage from './pages/trainings/TrainingsPage'
+import AssistantPage from './pages/assistant/AssistantPage'
 import TeamDetailPage from './pages/teams/TeamDetailPage'
 import TeamFormPage from './pages/teams/TeamFormPage'
 import TeamsListPage from './pages/teams/TeamsListPage'
@@ -73,9 +87,15 @@ function App() {
           <Route path="/equipos/:id" element={<TeamDetailPage />} />
           <Route path="/equipos/:id/editar" element={<TeamFormPage />} />
 
+          <Route path="/clubes" element={<ClubsListPage />} />
+          <Route path="/clubes/nuevo" element={<ClubFormPage />} />
+          <Route path="/clubes/:id" element={<ClubDetailPage />} />
+          <Route path="/clubes/:id/editar" element={<ClubFormPage />} />
+
           <Route path="/jugadores" element={<PlayersListPage />} />
           <Route path="/jugadores/nuevo" element={<PlayerFormPage />} />
           <Route path="/jugadores/:id" element={<PlayerDetailPage />} />
+          <Route path="/jugadores/:id/expediente" element={<PlayerProfilePage />} />
           <Route path="/jugadores/:id/editar" element={<PlayerFormPage />} />
 
           <Route path="/oficiales" element={<OfficialsListPage />} />
@@ -92,11 +112,24 @@ function App() {
           <Route path="/partidos" element={<MatchesListPage />} />
           <Route path="/partidos/nuevo" element={<MatchFormPage />} />
           <Route path="/partidos/:id" element={<MatchDetailPage />} />
+          <Route path="/partidos/:id/live" element={<LiveMatchPage />} />
           <Route path="/partidos/:id/editar" element={<MatchFormPage />} />
 
           <Route path="/estadisticas" element={<StatisticsPage />} />
 
+          <Route path="/jugadas" element={<PlaysLibraryPage />} />
+          <Route path="/metricas" element={<MetricsPage />} />
+
+          <Route path="/scouting/rivales" element={<RivalsPage />} />
+          <Route path="/scouting/jugadores" element={<PlayersScoutingPage />} />
+          <Route path="/scouting/seguimiento" element={<WatchlistPage />} />
+
+          <Route path="/entrenamientos" element={<TrainingsPage />} />
+          <Route path="/operativa" element={<OperationsPage />} />
+          <Route path="/asistente" element={<AssistantPage />} />
+
           <Route path="/reportes" element={<ReportsHubPage />} />
+          <Route path="/reportes/plantillas" element={<ReportBuilderPage />} />
           <Route path="/reportes/partidos" element={<MatchesReportPage />} />
           <Route path="/reportes/partidos/:id" element={<MatchDetailReportPage />} />
           <Route path="/reportes/jugadores" element={<PlayersReportPage />} />

@@ -24,6 +24,8 @@ export type Team = {
   logoUrl: string | null
   status: 'active' | 'inactive'
   addedPoints: number
+  clubId: number | null
+  category: string | null
   createdAt: string
   updatedAt: string | null
 }

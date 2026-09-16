@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../context/AuthContext'
 import { api } from '../../services/api'
+import MatchTacticsTab from './MatchTacticsTab'
+import MatchVideoTab from './MatchVideoTab'
 import TacticalViewTab from './TacticalViewTab'
 import type { Official } from '../../types/official'
 import type { Player } from '../../types/player'
@@ -35,6 +37,8 @@ import type {
 
 type Tab =
   | 'tactical'
+  | 'advanced'
+  | 'video'
   | 'info'
   | 'teams'
   | 'officials'
@@ -50,6 +54,8 @@ type Tab =
 // tal como pidió explícitamente que se conservara.
 const TABS: { key: Tab; label: string }[] = [
   { key: 'tactical', label: '📊 Análisis' },
+  { key: 'advanced', label: '📐 Táctica avanzada' },
+  { key: 'video', label: '🎬 Video' },
   { key: 'info', label: 'Información general' },
   { key: 'teams', label: 'Equipos y cuerpo técnico' },
   { key: 'officials', label: 'Arbitraje' },
@@ -132,6 +138,21 @@ export default function MatchDetailPage() {
           <div className="flex gap-2">
             <button
               type="button"
+              onClick={() => navigate(`/partidos/${match.id}/live`)}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            >
+              🔴 Live
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(`/asistente`)}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              title="Preguntarle al asistente por este partido"
+            >
+              🤖 IA
+            </button>
+            <button
+              type="button"
               onClick={() => navigate(`/partidos/${match.id}/editar`)}
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
             >
@@ -200,6 +221,8 @@ export default function MatchDetailPage() {
       {tab === 'stats' && <StatsTab match={match} onError={setError} />}
       {tab === 'players' && <PlayersTab match={match} onError={setError} />}
       {tab === 'tactical' && <TacticalViewTab match={match} onError={setError} />}
+      {tab === 'advanced' && <MatchTacticsTab match={match} onError={setError} />}
+      {tab === 'video' && <MatchVideoTab match={match} onError={setError} />}
       {tab === 'history' && <HistoryTab matchId={matchId} />}
     </div>
   )

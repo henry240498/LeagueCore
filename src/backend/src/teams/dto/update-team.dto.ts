@@ -13,4 +13,8 @@ export class UpdateTeamDto {
   @IsOptional() @IsString() @MaxLength(500) logoUrl?: string;
   @IsOptional() @IsIn(['active', 'inactive']) status?: string;
   @IsOptional() @IsInt() addedPoints?: number;
+  @IsOptional() @IsInt() clubId?: number;
+  @IsOptional()
+  @IsIn(['PRIMERA', 'RESERVA', 'SUB20', 'SUB17', 'FEMENINO', 'INFANTIL', 'EQUIPO_B'])
+  category?: string;
 }

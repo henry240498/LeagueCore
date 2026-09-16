@@ -20,4 +20,11 @@ export class CreateTeamDto {
   @IsOptional() @IsString() @MaxLength(500) logoUrl?: string;
   @IsOptional() @IsIn(['active', 'inactive']) status?: string;
   @IsOptional() @IsInt() addedPoints?: number;
+  // Fase 1 (clubes multi-equipo): un equipo puede pertenecer a un club con una categoria
+  // (PRIMERA, RESERVA, SUB20, SUB17, FEMENINO, INFANTIL, EQUIPO_B). Ambos opcionales para no
+  // romper los 475 equipos existentes.
+  @IsOptional() @IsInt() clubId?: number;
+  @IsOptional()
+  @IsIn(['PRIMERA', 'RESERVA', 'SUB20', 'SUB17', 'FEMENINO', 'INFANTIL', 'EQUIPO_B'])
+  category?: string;
 }

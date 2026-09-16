@@ -22,6 +22,10 @@ export class CreatePlayerDto {
   @IsOptional() @IsIn(PLAYER_POSITIONS) position?: string | null;
   @IsOptional() @IsInt() @Min(1) @Max(99) squadNumber?: number | null;
   @IsOptional() @IsInt() @Min(120) @Max(230) heightCm?: number | null;
+  @IsOptional() @IsInt() @Min(30) @Max(200) weightKg?: number | null;
+  @IsOptional()
+  @IsIn(['VIGENTE', 'POR_VENCER', 'VENCIDO', 'A_PRESTAMO', 'LIBRE', 'JUVENIL'])
+  contractStatus?: string | null;
   @IsOptional() @IsIn(['izquierdo', 'derecho', 'ambidiestro']) preferredFoot?: string | null;
   @IsOptional() @IsInt() teamId?: number | null;
   @IsOptional() @IsIn(['active', 'inactive']) status?: string;

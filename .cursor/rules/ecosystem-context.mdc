@@ -1,0 +1,6 @@
+---
+description: Entrada al contexto del proyecto y reglas generales
+alwaysApply: true
+---
+
+Leer .context/contexto.md y .context/reglas.md antes de editar. Localizar Vaults mediante .context/proyecto.json o VAULTS_ROOT. Mantener las reglas particulares existentes; no duplicar documentación ni ejecutar acciones productivas implícitas.

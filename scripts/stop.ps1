@@ -1,7 +1,4 @@
-$ports = 4001, 5173
-foreach ($port in $ports) {
-    $conn = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
-    foreach ($c in $conn) {
-        Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue
-    }
-}
+$ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'process-ownership.ps1')
+$projectRoot = Split-Path -Parent $PSScriptRoot
+Stop-ProjectPorts -Ports @(4001, 5173) -ProjectRoot $projectRoot
