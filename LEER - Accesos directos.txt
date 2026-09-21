@@ -1,0 +1,25 @@
+¿PARA QUÉ SIRVE CADA ACCESO DIRECTO?
+
+Los dos ponen en marcha el mismo programa: LeagueCore.
+La diferencia es desde dónde querés usarlo.
+
+1. LeagueCore
+Usá este para trabajar en esta computadora. Hacé doble clic y,
+después de unos segundos, se abrirá la página del programa.
+Es la opción habitual para el uso diario.
+
+2. LeagueCore (Remoto)
+Usá este para entrar desde un celular u otra computadora por Internet,
+o para permitir que otra persona entre. Al hacer doble clic, aparece
+una ventana con texto y una dirección que termina en trycloudflare.com.
+Copiá esa dirección y abrila en el otro dispositivo.
+
+Para usar el acceso remoto, esta computadora debe seguir encendida,
+con Internet y con esa ventana abierta. Si cerrás la ventana, se corta
+el acceso desde afuera, pero el programa sigue funcionando aquí.
+La dirección es temporal y puede cambiar cada vez que lo iniciás.
+
+¿CUÁL ELIJO?
+Para usarlo aquí: LeagueCore.
+Para entrar desde otro dispositivo por Internet: LeagueCore (Remoto).
+Elegí uno; no hace falta abrir los dos.
