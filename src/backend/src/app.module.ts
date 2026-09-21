@@ -6,6 +6,8 @@ import { CoachesModule } from './coaches/coaches.module';
 import { CompetitionsModule } from './competitions/competitions.module';
 import { DashboardController } from './dashboard/dashboard.controller';
 import { DatabaseModule } from './database/database.module';
+// DEV-ONLY: quitar antes de release. Ver docs/DEV_TOOLS_QUITAR_ANTES_DE_RELEASE.md
+import { DevModule } from './dev/dev.module';
 import { HealthController } from './health/health.controller';
 import { ImportEngineModule } from './import-engine/import-engine.module';
 import { InsightsModule } from './insights/insights.module';
@@ -58,6 +60,9 @@ import { VideogameRatingsModule } from './videogame-ratings/videogame-ratings.mo
     VideogameRatingsModule,
     VideoModule,
     ReportsModule,
+    // DEV-ONLY: herramientas de desarrollo (panel de credenciales de prueba).
+    // No se monta en producción. Quitar antes de release: docs/DEV_TOOLS_QUITAR_ANTES_DE_RELEASE.md
+    ...(process.env.NODE_ENV === 'production' ? [] : [DevModule]),
   ],
   controllers: [HealthController, DashboardController],
 })

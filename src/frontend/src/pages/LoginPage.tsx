@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import LoginVisual from '../components/LoginVisual'
+// DEV-ONLY: quitar antes de release. Ver docs/DEV_TOOLS_QUITAR_ANTES_DE_RELEASE.md
+import DevCredentialsPanel from '../components/DevCredentialsPanel'
 import { ApiError, useAuth } from '../context/AuthContext'
 import { api } from '../services/api'
 import { DEFAULT_LOGIN_SETTINGS } from '../defaultLoginSettings'
@@ -37,16 +39,28 @@ export default function LoginPage() {
   }
 
   return (
-    <LoginVisual
-      settings={settings}
-      username={username}
-      password={password}
-      onUsernameChange={setUsername}
-      onPasswordChange={setPassword}
-      onSubmit={handleSubmit}
-      error={error}
-      loading={loading}
-      interactive
-    />
+    <>
+      <LoginVisual
+        settings={settings}
+        username={username}
+        password={password}
+        onUsernameChange={setUsername}
+        onPasswordChange={setPassword}
+        onSubmit={handleSubmit}
+        error={error}
+        loading={loading}
+        interactive
+      />
+      {/* DEV-ONLY: panel oculto de credenciales de prueba. Eliminado del bundle en producción
+          porque import.meta.env.DEV es false. Ver docs/DEV_TOOLS_QUITAR_ANTES_DE_RELEASE.md */}
+      {import.meta.env.DEV && (
+        <DevCredentialsPanel
+          onPick={(u, p) => {
+            setUsername(u)
+            setPassword(p)
+          }}
+        />
+      )}
+    </>
   )
 }
