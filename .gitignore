@@ -30,3 +30,11 @@ Thumbs.db
 
 # Datasets/paquetes grandes (no versionar en git)
 open-data-master.zip
+
+# Accesos directos: guardan rutas absolutas de cada equipo. Se generan con
+# "Instalar accesos directos.bat"; no se versionan (romperian en otras PCs).
+*.lnk
+
+# Estado de ejecucion del lanzador (PIDs, URL del tunel, logs) y binarios locales opcionales
+logs/
+tools/

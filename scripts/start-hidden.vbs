@@ -1,25 +1,19 @@
-' Arranca LeagueCore (API + Web) sin mostrar ninguna ventana de consola,
-' y abre el navegador cuando el frontend está listo.
+' Arranca LeagueCore (API + Web + tunel de Cloudflare) sin mostrar ninguna ventana de consola.
+' Delega todo el trabajo en scripts\start-all.ps1 (que tambien abre el navegador).
 '
-' Uso: wscript.exe //B start-hidden.vbs "<ruta raíz del repo, con backslash final>"
-' Logs (si algo falla, revisar acá): <raiz>\logs\backend.log y <raiz>\logs\frontend.log
+' Uso: wscript.exe //B start-hidden.vbs "<carpeta raiz del repo>" [-NoTunnel]
+' Logs (si algo falla, revisar aca): <raiz>\logs\launcher.log, backend.log, frontend.log, tunnel.log
 
-Dim root, shell, fso
-root = WScript.Arguments(0)
-
+Dim shell, fso, root, extra, cmd
 Set shell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
-If Not fso.FolderExists(root & "logs") Then
-    fso.CreateFolder(root & "logs")
-End If
+' GetAbsolutePathName normaliza la ruta y quita el "\" final ("C:\x\" o "C:\x\." -> "C:\x"),
+' que si no rompe el entrecomillado al pasarlo a PowerShell.
+root = fso.GetAbsolutePathName(WScript.Arguments(0))
 
-shell.CurrentDirectory = root & "src\backend"
-shell.Run "cmd /c npm run start:dev > """ & root & "logs\backend.log"" 2>&1", 0, False
+extra = ""
+If WScript.Arguments.Count > 1 Then extra = " " & WScript.Arguments(1)
 
-shell.CurrentDirectory = root & "src\frontend"
-shell.Run "cmd /c npm run dev > """ & root & "logs\frontend.log"" 2>&1", 0, False
-
-WScript.Sleep 8000
-
-shell.Run "http://localhost:5173", 1, False
+cmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & root & "\scripts\start-all.ps1"" -Root """ & root & """" & extra
+shell.Run cmd, 0, False

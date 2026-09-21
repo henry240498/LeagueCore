@@ -1,25 +1,60 @@
-¿PARA QUÉ SIRVE CADA ACCESO DIRECTO?
+LEAGUECORE - COMO ABRIRLO Y PARA QUE SIRVE CADA ACCESO DIRECTO
 
-Los dos ponen en marcha el mismo programa: LeagueCore.
-La diferencia es desde dónde querés usarlo.
+PRIMERA VEZ EN UNA COMPUTADORA
+1. Hacé doble clic en "Instalar accesos directos.bat" (está en esta carpeta).
+   Crea los accesos directos en el Escritorio de ESA computadora, apuntando a
+   donde esté esta carpeta, y revisa que estén los requisitos. Se hace una sola
+   vez por computadora (y de nuevo si movés la carpeta).
+   Los accesos directos no se copian entre computadoras: cada una tiene los suyos.
+2. Requisitos de cada computadora:
+   - Node.js (versión LTS): https://nodejs.org
+   - SQL Server con la base LeagueCore, y el archivo src\backend\.env completo
+     con sus datos (DB_HOST, DB_NAME, DB_USER, DB_PASSWORD y un JWT_SECRET).
+     Si falta, la primera vez que abras LeagueCore se crea desde .env.example
+     y te avisa que lo completes.
+   - cloudflared, para el acceso remoto. El instalador te ofrece instalarlo.
+     Sin cloudflared, LeagueCore funciona igual, pero solo en esa computadora.
+3. La primera vez que se abre, instala solo lo que le falta (puede tardar
+   varios minutos). Después arranca en unos segundos.
+
+LOS ACCESOS DIRECTOS
 
 1. LeagueCore
-Usá este para trabajar en esta computadora. Hacé doble clic y,
-después de unos segundos, se abrirá la página del programa.
-Es la opción habitual para el uso diario.
+   Es el de uso diario. Un solo doble clic pone en marcha todo junto: el
+   sistema (backend y pantallas) y el acceso remoto. No se ve ninguna ventana
+   negra: al terminar se abre el navegador y aparece un aviso con dos
+   direcciones:
+     - En esta PC:  http://localhost:5173
+     - Acceso remoto: una dirección que termina en trycloudflare.com
+   La dirección remota queda copiada en el portapapeles, lista para pegar en
+   un mensaje. Es temporal: cambia cada vez que se inicia LeagueCore.
+   Si ya estaba abierto, no se abre otra copia: reutiliza lo que ya corre.
 
-2. LeagueCore (Remoto)
-Usá este para entrar desde un celular u otra computadora por Internet,
-o para permitir que otra persona entre. Al hacer doble clic, aparece
-una ventana con texto y una dirección que termina en trycloudflare.com.
-Copiá esa dirección y abrila en el otro dispositivo.
+2. LeagueCore (enlace remoto)
+   Vuelve a mostrar (y a copiar) la dirección remota actual, sin reiniciar nada.
 
-Para usar el acceso remoto, esta computadora debe seguir encendida,
-con Internet y con esa ventana abierta. Si cerrás la ventana, se corta
-el acceso desde afuera, pero el programa sigue funcionando aquí.
-La dirección es temporal y puede cambiar cada vez que lo iniciás.
+3. LeagueCore (solo local)
+   Igual que el primero, pero SIN acceso remoto: nadie puede entrar desde
+   afuera. Usalo si no querés que el sistema quede accesible por Internet.
 
-¿CUÁL ELIJO?
-Para usarlo aquí: LeagueCore.
-Para entrar desde otro dispositivo por Internet: LeagueCore (Remoto).
-Elegí uno; no hace falta abrir los dos.
+4. LeagueCore (detener)
+   Apaga todo (sistema y acceso remoto). Solo cierra lo que es de LeagueCore;
+   no toca otros programas.
+
+ACCESO REMOTO: A TENER EN CUENTA
+- Para entrar desde un celular u otra computadora, esta PC debe seguir
+  encendida, con Internet y con LeagueCore abierto.
+- Cualquiera que tenga la dirección puede llegar a la pantalla de ingreso, y
+  todavía hay que iniciar sesión con usuario y contraseña. No compartas la
+  dirección con quien no deba entrar, y usá "LeagueCore (detener)" cuando ya
+  no la necesites.
+- IMPORTANTE: si el usuario administrador todavía tiene la contraseña de prueba
+  (123456), cualquiera que reciba la dirección remota y la adivine podría
+  entrar como administrador. Cambiá esa contraseña antes de compartir la
+  dirección, o usá "LeagueCore (solo local)".
+- La lista de credenciales de prueba de la pantalla de ingreso (Ctrl+L+9) solo
+  se muestra al usar el sistema desde la misma PC, nunca por el acceso remoto.
+
+SI ALGO NO ARRANCA
+Mirá la carpeta "logs" (dentro de esta): launcher.log resume qué pasó, y
+backend.log, frontend.log y tunnel.log tienen el detalle de cada parte.
