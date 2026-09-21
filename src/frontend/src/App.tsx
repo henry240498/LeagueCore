@@ -9,6 +9,8 @@ import ClubsListPage from './pages/clubs/ClubsListPage'
 import CompetitionDetailPage from './pages/competitions/CompetitionDetailPage'
 import CompetitionFormPage from './pages/competitions/CompetitionFormPage'
 import CompetitionsListPage from './pages/competitions/CompetitionsListPage'
+import InformalTournamentsListPage from './pages/informal-tournaments/InformalTournamentsListPage'
+import InformalTournamentFormPage from './pages/informal-tournaments/InformalTournamentFormPage'
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
 import MatchDetailPage from './pages/matches/MatchDetailPage'
@@ -76,6 +78,10 @@ function App() {
           <Route path="/competiciones/nueva" element={<CompetitionFormPage />} />
           <Route path="/competiciones/:id" element={<CompetitionDetailPage />} />
           <Route path="/competiciones/:id/editar" element={<CompetitionFormPage />} />
+
+          <Route path="/torneos" element={<InformalTournamentsListPage />} />
+          <Route path="/torneos/nuevo" element={<InformalTournamentFormPage />} />
+          <Route path="/torneos/:id/editar" element={<InformalTournamentFormPage />} />
 
           <Route path="/temporadas" element={<SeasonsListPage />} />
           <Route path="/temporadas/nueva" element={<SeasonFormPage />} />

@@ -10,6 +10,7 @@ import { DatabaseModule } from './database/database.module';
 import { DevModule } from './dev/dev.module';
 import { HealthController } from './health/health.controller';
 import { ImportEngineModule } from './import-engine/import-engine.module';
+import { InformalTournamentsModule } from './informal-tournaments/informal-tournaments.module';
 import { InsightsModule } from './insights/insights.module';
 import { MatchesModule } from './matches/matches.module';
 import { MigrationEngineModule } from './migration-engine/migration-engine.module';
@@ -40,6 +41,7 @@ import { VideogameRatingsModule } from './videogame-ratings/videogame-ratings.mo
     UsersModule,
     LoginSettingsModule,
     CompetitionsModule,
+    InformalTournamentsModule,
     TeamsModule,
     PlayersModule,
     OfficialsModule,

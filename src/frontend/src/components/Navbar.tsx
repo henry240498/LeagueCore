@@ -12,6 +12,7 @@ const GROUPS: NavGroup[] = [
     items: [
       { to: '/clubes', label: 'Clubes' },
       { to: '/competiciones', label: 'Competiciones' },
+      { to: '/torneos', label: 'Torneos informales' },
       { to: '/temporadas', label: 'Temporadas' },
       { to: '/equipos', label: 'Equipos' },
       { to: '/jugadores', label: 'Jugadores' },
