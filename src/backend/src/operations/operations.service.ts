@@ -364,11 +364,16 @@ export class OperationsService {
   }
 
   async resolveAlert(id: number, status: 'LEIDA' | 'RESUELTA') {
-    await this.pool
+    // La tabla sólo admite PENDIENTE/LEIDA/RESUELTA (CK_al_status); un valor inválido daba 500.
+    if (status !== 'LEIDA' && status !== 'RESUELTA') {
+      throw new BadRequestException("Estado inválido: usá 'LEIDA' o 'RESUELTA'");
+    }
+    const result = await this.pool
       .request()
       .input('id', sql.Int, id)
       .input('status', sql.NVarChar, status)
       .query('UPDATE dbo.alerts SET status = @status WHERE id = @id');
+    if (result.rowsAffected[0] === 0) throw new NotFoundException('Alerta no encontrada');
     return { id };
   }
 
@@ -420,7 +425,7 @@ export class OperationsService {
       await insert('SANCION', 'player', r.id, `🟨 ${r.full_name} acumula ${r.yellows} amarillas (riesgo de suspensión)`);
     }
     const overdue = await this.pool.query(
-      `SELECT id, COALESCE(p.full_name, external_name) AS name FROM dbo.watchlist w
+      `SELECT w.id, COALESCE(p.full_name, w.external_name) AS name FROM dbo.watchlist w
        LEFT JOIN dbo.players p ON p.id = w.player_id
        WHERE w.next_observation IS NOT NULL AND w.next_observation < CAST(GETUTCDATE() AS DATE)
          AND w.status IN ('OBSERVADO','EN_SEGUIMIENTO')`,

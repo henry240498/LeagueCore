@@ -149,7 +149,12 @@ export class VideoController {
   }
 
   @Get('matches/:matchId/sync')
-  getSyncTimeline(@Param('matchId', ParseIntPipe) matchId: number, @Query('videoId') videoId: string) {
-    return this.service.getSyncTimeline(matchId, Number(videoId));
+  getSyncTimeline(@Param('matchId', ParseIntPipe) matchId: number, @Query('videoId') videoId?: string) {
+    const id = Number(videoId);
+    // Sin videoId válido daba un 404 "Video no encontrado" engañoso: es un parámetro obligatorio.
+    if (!videoId || !Number.isInteger(id) || id <= 0) {
+      throw new BadRequestException('videoId es obligatorio (?videoId=<id del video>)');
+    }
+    return this.service.getSyncTimeline(matchId, id);
   }
 }

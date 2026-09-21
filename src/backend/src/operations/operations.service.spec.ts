@@ -1,8 +1,10 @@
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { OperationsService } from './operations.service';
 
 function createMockPool() {
   const trainings: any[] = [];
   const alerts: any[] = [];
+  const queries: string[] = []; // SQL ejecutado, para verificar la forma de las consultas
   let nextId = 1;
   const request = () => {
     const inputs: Record<string, any> = {};
@@ -12,7 +14,13 @@ function createMockPool() {
         return req;
       },
       async query(sqlText: string) {
+        queries.push(sqlText);
         const q = sqlText.replace(/\s+/g, ' ').trim().toLowerCase();
+        if (q.startsWith('update dbo.alerts set status')) {
+          const row = alerts.find((a) => a.id === inputs.id);
+          if (row) row.status = inputs.status;
+          return { recordset: [], rowsAffected: [row ? 1 : 0] };
+        }
         if (q === 'select top 1 1 from dbo.teams where id = @id') {
           return { recordset: inputs.id === 1 ? [{}] : [] };
         }
@@ -46,7 +54,7 @@ function createMockPool() {
     return req;
   };
   const query = async (sqlText: string) => request().query(sqlText);
-  return { request, query };
+  return { request, query, queries, alerts };
 }
 
 describe('OperationsService', () => {
@@ -69,5 +77,38 @@ describe('OperationsService', () => {
     const service = new OperationsService(createMockPool() as any);
     const first = await service.runAlertCheck();
     expect(first.created).toBe(0);
+  });
+
+  // Regresión: POST /operations/alerts/check daba 500 ("Ambiguous column name 'id'") porque la consulta de
+  // seguimientos vencidos hacía SELECT id sobre watchlist JOIN players, y ambas tablas tienen id.
+  // El mock no ejecuta SQL real, así que se verifica la forma de la consulta.
+  it('la consulta de seguimientos vencidos califica las columnas (w.id) para no ser ambigua', async () => {
+    const pool = createMockPool();
+    await new OperationsService(pool as any).runAlertCheck();
+    const overdue = pool.queries.find((q) => /from dbo\.watchlist/i.test(q));
+    expect(overdue).toBeDefined();
+    expect(overdue).toMatch(/select\s+w\.id/i);
+    expect(overdue).not.toMatch(/select\s+id\b/i);
+  });
+
+  describe('resolveAlert', () => {
+    it('marca una alerta existente', async () => {
+      const pool = createMockPool();
+      pool.alerts.push({ id: 5, status: 'PENDIENTE' });
+      const out = await new OperationsService(pool as any).resolveAlert(5, 'RESUELTA');
+      expect(out).toEqual({ id: 5 });
+      expect(pool.alerts[0].status).toBe('RESUELTA');
+    });
+
+    it('rechaza un estado inválido con 400 (antes rompía la restricción de la tabla: 500)', async () => {
+      const service = new OperationsService(createMockPool() as any);
+      await expect(service.resolveAlert(5, 'XX' as any)).rejects.toBeInstanceOf(BadRequestException);
+      await expect(service.resolveAlert(5, 'PENDIENTE' as any)).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('responde 404 si la alerta no existe (antes devolvía 200 sin hacer nada)', async () => {
+      const service = new OperationsService(createMockPool() as any);
+      await expect(service.resolveAlert(999999, 'LEIDA')).rejects.toBeInstanceOf(NotFoundException);
+    });
   });
 });

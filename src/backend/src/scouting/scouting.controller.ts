@@ -78,8 +78,9 @@ export class ScoutingController {
   }
 
   @Get('compare')
-  comparePlayers(@Query('ids') ids: string) {
-    return this.service.comparePlayers(ids.split(',').map(Number).filter(Number.isFinite));
+  comparePlayers(@Query('ids') ids?: string) {
+    // Sin `ids` no hay que romper con un 500: el servicio responde 400 ("Compará entre 2 y 4 jugadores").
+    return this.service.comparePlayers((ids ?? '').split(',').map(Number).filter(Number.isFinite));
   }
 
   // Informes de scouting

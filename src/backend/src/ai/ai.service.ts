@@ -8,7 +8,7 @@ export function normalize(text: string): string {
   return text
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, ' ')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9nñ\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -33,7 +33,8 @@ export function detectIntent(question: string): Intent {
   const has = (...words: string[]) => words.some((w) => q.includes(` ${w} `) || q.includes(` ${w}`));
   if (has('ayuda', 'que puedes hacer', 'que sabes hacer', 'como funcionas')) return 'ayuda';
   if (has('por que perdimos', 'porque perdimos', 'perdimos', 'derrota', 'por que perdio')) return 'por_que_perdimos';
-  if (has('resumen', 'resume', 'cronica', 'como salio', 'como quedo', 'resultado')) return 'resumen_partido';
+  // 'resum' cubre resumen / resume / resumí (voseo) / resumir.
+  if (has('resum', 'cronica', 'como salio', 'como quedo', 'resultado')) return 'resumen_partido';
   if (has('lesionado', 'lesionados', 'baja', 'bajas', 'disponible', 'disponibles', 'enfermeria')) return 'lesionados';
   if (has('proximo partido', 'siguiente partido', 'cuando jugamos', 'proximo rival', 'que viene')) return 'proximo_partido';
   if (has('goleador', 'goleadores', 'quien marco', 'pichichi', 'maximo goleador')) return 'goleadores';
