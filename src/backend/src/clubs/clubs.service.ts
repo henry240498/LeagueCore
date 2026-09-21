@@ -27,7 +27,7 @@ function toCamel(row: Record<string, any>) {
   for (const [camel, snake] of Object.entries(COLUMN_MAP)) {
     out[camel] = row[snake];
   }
-  return out;
+  return out as Record<string, any> & { id: number; name: string };
 }
 
 function toStaffCamel(r: Record<string, any>) {

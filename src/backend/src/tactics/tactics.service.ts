@@ -272,7 +272,7 @@ export class TacticsService {
   async createPossession(matchId: number, dto: CreatePossessionDto) {
     await this.assertMatchExists(matchId);
     await this.assertTeamExists(dto.teamId);
-    if (dto.startMinute !== undefined && dto.endMinute !== undefined && dto.endMinute < dto.startMinute) {
+    if (dto.startMinute != null && dto.endMinute != null && dto.endMinute < dto.startMinute) {
       throw new BadRequestException('El minuto final no puede ser anterior al inicial');
     }
     const result = await this.pool
@@ -636,7 +636,7 @@ export class TacticsService {
       recuperaciones: recoveries,
       intercepciones: interceptions,
       posesiones: possessions,
-      posesiones_xg: Math.round(posesionesXg * 1000) / 1000,
+      posesiones_xg: Math.round(possessionsXg * 1000) / 1000,
     };
   }
 

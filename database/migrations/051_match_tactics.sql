@@ -20,23 +20,23 @@ GO
 IF OBJECT_ID('dbo.match_tactical_setups', 'U') IS NULL
 CREATE TABLE dbo.match_tactical_setups (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    match_id INT NOT NULL CONSTRAINT FK_mts_match FOREIGN KEY REFERENCES dbo.matches(id) ON DELETE CASCADE,
-    team_id INT NOT NULL CONSTRAINT FK_mts_team FOREIGN KEY REFERENCES dbo.teams(id),
-    phase NVARCHAR(20) NOT NULL CONSTRAINT DF_mts_phase DEFAULT N'INICIAL',
+    match_id INT NOT NULL CONSTRAINT FK_mtsetup_match FOREIGN KEY REFERENCES dbo.matches(id) ON DELETE CASCADE,
+    team_id INT NOT NULL CONSTRAINT FK_mtsetup_team FOREIGN KEY REFERENCES dbo.teams(id),
+    phase NVARCHAR(20) NOT NULL CONSTRAINT DF_mtsetup_phase DEFAULT N'INICIAL',
     formation_shape NVARCHAR(10) NULL,
     block NVARCHAR(10) NULL,
     pressing NVARCHAR(100) NULL,
     buildup NVARCHAR(100) NULL,
     notes NVARCHAR(1000) NULL,
-    created_at DATETIME2 NOT NULL CONSTRAINT DF_mts_created_at DEFAULT SYSUTCDATETIME(),
-    updated_at DATETIME2 NOT NULL CONSTRAINT DF_mts_updated_at DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT CK_mts_phase CHECK (phase IN ('INICIAL', 'DEFENSIVA', 'OFENSIVA', 'TRANSICION')),
-    CONSTRAINT CK_mts_block CHECK (block IS NULL OR block IN ('BAJO', 'MEDIO', 'ALTO')),
-    CONSTRAINT UX_mts_match_team_phase UNIQUE (match_id, team_id, phase)
+    created_at DATETIME2 NOT NULL CONSTRAINT DF_mtsetup_created_at DEFAULT SYSUTCDATETIME(),
+    updated_at DATETIME2 NOT NULL CONSTRAINT DF_mtsetup_updated_at DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT CK_mtsetup_phase CHECK (phase IN ('INICIAL', 'DEFENSIVA', 'OFENSIVA', 'TRANSICION')),
+    CONSTRAINT CK_mtsetup_block CHECK (block IS NULL OR block IN ('BAJO', 'MEDIO', 'ALTO')),
+    CONSTRAINT UX_mtsetup_match_team_phase UNIQUE (match_id, team_id, phase)
 );
 GO
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_mts_match')
-    CREATE INDEX IX_mts_match ON dbo.match_tactical_setups(match_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_mtsetup_match')
+    CREATE INDEX IX_mtsetup_match ON dbo.match_tactical_setups(match_id);
 GO
 
 -- 2) Biblioteca de jugadas ------------------------------------------------------
