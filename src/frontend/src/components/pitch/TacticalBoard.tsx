@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import FootballPitch, { dataYToSvg } from './FootballPitch'
-import type { BoardDiagram } from '../types/tactics'
+import type { BoardDiagram } from '../../types/tactics'
 
 let tokenSeq = 0
 const newTokenId = () => `t${Date.now()}_${(tokenSeq += 1)}`
@@ -27,10 +27,10 @@ export default function TacticalBoard({
     onChange?.({ tokens: nextTokens, arrows: nextArrows })
   }
 
-  const svgPos = (e: React.PointerEvent<SVGSVGElement>) => {
-    const svg = e.currentTarget
-    const rect = svg.getBoundingClientRect()
-    // El svg interno de FootballPitch maneja su propio click; acá convertimos igual (viewBox 100x150)
+  const svgPos = (e: React.PointerEvent<HTMLDivElement>) => {
+    const wrapper = e.currentTarget
+    const rect = wrapper.getBoundingClientRect()
+    // El contenedor envuelve al svg de FootballPitch (que maneja su propio click); convertimos igual (viewBox 100x150)
     const x = ((e.clientX - rect.left) / rect.width) * 100
     const y = (((e.clientY - rect.top) / rect.height) * 150) / 1.5
     return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) }
@@ -56,7 +56,7 @@ export default function TacticalBoard({
     setSelected(id)
   }
 
-  const moveDragged = (e: React.PointerEvent<SVGSVGElement>) => {
+  const moveDragged = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragId) return
     const { x, y } = svgPos(e)
     setTokens((ts) => ts.map((t) => (t.id === dragId ? { ...t, x: Math.round(x), y: Math.round(y) } : t)))

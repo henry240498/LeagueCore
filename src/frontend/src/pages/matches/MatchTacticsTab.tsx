@@ -41,8 +41,8 @@ export default function MatchTacticsTab({
 }) {
   const matchId = match.id
   const teams = [
-    { id: match.homeTeamId, name: match.homeTeamName },
-    { id: match.awayTeamId, name: match.awayTeamName },
+    { id: match.homeTeamId, name: match.homeTeamName ?? 'Local' },
+    { id: match.awayTeamId, name: match.awayTeamName ?? 'Visitante' },
   ]
 
   const [setups, setSetups] = useState<TacticalSetup[]>([])

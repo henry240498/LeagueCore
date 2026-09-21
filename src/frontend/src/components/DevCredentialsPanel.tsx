@@ -7,12 +7,63 @@
 //    componente NO se incluye en el bundle.
 //  - Los datos vienen del backend en /dev/test-credentials, que responde 404 en prod.
 //
-// Cómo abrir el panel (dos atajos ocultos, ninguno visible a simple vista):
-//  1) Teclado: Ctrl + Alt + K
-//  2) Toque/clic: 3 clics rápidos en la esquina inferior derecha de la pantalla.
+// Cómo mostrar/ocultar el panel (atajos ocultos, ninguno visible a simple vista):
+//  1) Teclado: Ctrl + L + 9  (alterna: la 1ª vez lo muestra, la 2ª lo oculta)
+//  2) Teclado: Ctrl + Alt + K
+//  3) Toque/clic: 3 clics rápidos en la esquina inferior derecha de la pantalla.
+// Escape también lo cierra.
+//
+// Por seguridad, el backend sólo entrega la lista a accesos LOCALES (no por el túnel de
+// Cloudflare). Ver src/backend/src/dev/dev.controller.ts.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../services/api'
+
+/** Ventana (ms) en la que un 9 todavía cuenta como parte del atajo tras soltar la L. */
+const CHORD_WINDOW_MS = 1500
+
+/**
+ * Detecta Ctrl + L + 9 con Ctrl mantenido, en cualquier orden entre L y 9 (mantenidas a la
+ * vez, o L y luego 9 dentro de una ventana corta). Usa `code` (posición física de la tecla)
+ * para que no dependa de la distribución del teclado.
+ *
+ * Ctrl+L en el navegador enfoca la barra de direcciones y Ctrl+9 salta a la última pestaña;
+ * se cancela su acción por defecto para que el 9 llegue a la página.
+ */
+function useCtrlL9(onChord: () => void) {
+  useEffect(() => {
+    const held = new Set<string>()
+    let lastL = 0
+
+    const onDown = (e: KeyboardEvent) => {
+      held.add(e.code)
+      if (e.ctrlKey && e.code === 'KeyL') {
+        e.preventDefault()
+        lastL = Date.now()
+        return
+      }
+      const isNine = e.code === 'Digit9' || e.code === 'Numpad9'
+      if (isNine && e.ctrlKey && !e.repeat && (held.has('KeyL') || Date.now() - lastL < CHORD_WINDOW_MS)) {
+        e.preventDefault()
+        lastL = 0
+        onChord()
+      }
+    }
+    const onUp = (e: KeyboardEvent) => {
+      held.delete(e.code)
+    }
+    const onBlur = () => held.clear()
+
+    window.addEventListener('keydown', onDown)
+    window.addEventListener('keyup', onUp)
+    window.addEventListener('blur', onBlur)
+    return () => {
+      window.removeEventListener('keydown', onDown)
+      window.removeEventListener('keyup', onUp)
+      window.removeEventListener('blur', onBlur)
+    }
+  }, [onChord])
+}
 
 type TestCredential = {
   label: string
@@ -41,32 +92,44 @@ export default function DevCredentialsPanel({ onPick }: Props) {
       const data = await api.get<TestCredential[]>('/dev/test-credentials')
       setItems(data)
     } catch {
-      setError('No se pudo cargar la lista (¿backend levantado en modo desarrollo?).')
+      setError(
+        'No disponible. Las credenciales de prueba solo se muestran al usar el sistema desde este equipo ' +
+          '(no por el acceso remoto) y con el backend en modo desarrollo.',
+      )
     } finally {
       setLoaded(true)
     }
   }, [loaded])
 
-  const openPanel = useCallback(() => {
-    setOpen(true)
-    void load()
-  }, [load])
+  // Único punto por el que se muestra/oculta el panel. Al mostrarlo por primera vez carga la
+  // lista. `openRef` refleja `open` para que los atajos de teclado (listeners fuera de React)
+  // alternen sobre el valor actual.
+  const openRef = useRef(false)
+  const setPanel = useCallback(
+    (next: boolean) => {
+      openRef.current = next
+      setOpen(next)
+      if (next) void load()
+    },
+    [load],
+  )
+  const toggle = useCallback(() => setPanel(!openRef.current), [setPanel])
 
-  // Atajo de teclado: Ctrl + Alt + K
+  // Atajo principal: Ctrl + L + 9 (alterna mostrar/ocultar)
+  useCtrlL9(toggle)
+
+  // Atajos secundarios: Ctrl + Alt + K (alterna) y Escape (cierra)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.altKey && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault()
-        setOpen((v) => {
-          if (!v) void load()
-          return !v
-        })
+        toggle()
       }
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') setPanel(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [load])
+  }, [toggle, setPanel])
 
   // Atajo táctil/clic: 3 clics rápidos (<600ms entre sí) en la esquina inferior derecha.
   const handleCornerClick = () => {
@@ -74,13 +137,13 @@ export default function DevCredentialsPanel({ onPick }: Props) {
     cornerClicks.current = [...cornerClicks.current, now].filter((t) => now - t < 1200)
     if (cornerClicks.current.length >= 3) {
       cornerClicks.current = []
-      openPanel()
+      setPanel(true)
     }
   }
 
   const pick = (c: TestCredential) => {
     onPick?.(c.username, c.password)
-    setOpen(false)
+    setPanel(false)
   }
 
   const copy = async (c: TestCredential) => {
@@ -108,7 +171,7 @@ export default function DevCredentialsPanel({ onPick }: Props) {
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setOpen(false)}
+          onClick={() => setPanel(false)}
         >
           <div
             className="max-h-[85vh] w-full max-w-lg overflow-auto rounded-xl bg-white p-5 text-slate-800 shadow-2xl"
@@ -118,7 +181,7 @@ export default function DevCredentialsPanel({ onPick }: Props) {
               <h2 className="text-lg font-bold">🔑 Credenciales de prueba</h2>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => setPanel(false)}
                 className="rounded px-2 py-1 text-slate-500 hover:bg-slate-100"
                 aria-label="Cerrar"
               >
@@ -180,7 +243,7 @@ export default function DevCredentialsPanel({ onPick }: Props) {
             </ul>
 
             <p className="mt-4 text-[11px] text-slate-400">
-              Atajos: Ctrl+Alt+K · 3 clics en la esquina inferior derecha.
+              Atajos: Ctrl+L+9 (mostrar/ocultar) · Ctrl+Alt+K · 3 clics en la esquina inferior derecha.
             </p>
           </div>
         </div>

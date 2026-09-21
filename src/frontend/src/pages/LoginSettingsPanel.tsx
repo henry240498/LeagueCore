@@ -575,7 +575,7 @@ function VideoBackgroundField({
   const videoRef = useRef<HTMLVideoElement>(null)
   const [duration, setDuration] = useState<number | null>(null)
 
-  const useCurrentTimeAs = (setter: (v: number) => void) => {
+  const setFromCurrentTime = (setter: (v: number) => void) => {
     if (videoRef.current) setter(Math.round(videoRef.current.currentTime * 100) / 100)
   }
 
@@ -646,7 +646,7 @@ function VideoBackgroundField({
                 />
                 <button
                   type="button"
-                  onClick={() => useCurrentTimeAs(onChangeStart)}
+                  onClick={() => setFromCurrentTime(onChangeStart)}
                   className="whitespace-nowrap rounded-lg border border-slate-300 px-2 text-xs text-slate-600 hover:bg-slate-100"
                 >
                   Usar actual
@@ -666,7 +666,7 @@ function VideoBackgroundField({
                 />
                 <button
                   type="button"
-                  onClick={() => useCurrentTimeAs((v) => onChangeEnd(v))}
+                  onClick={() => setFromCurrentTime((v) => onChangeEnd(v))}
                   className="whitespace-nowrap rounded-lg border border-slate-300 px-2 text-xs text-slate-600 hover:bg-slate-100"
                 >
                   Usar actual

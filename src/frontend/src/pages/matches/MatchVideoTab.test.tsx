@@ -59,7 +59,7 @@ describe('MatchVideoTab', () => {
     render(<MatchVideoTab match={MATCH} onError={() => {}} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Partido completo')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Partido completo' })).toBeInTheDocument()
     })
     await waitFor(() => {
       expect(screen.getByText(/Recuperación/)).toBeInTheDocument()
