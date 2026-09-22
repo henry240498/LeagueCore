@@ -19,6 +19,23 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
   onUnauthorized = handler
 }
 
+/**
+ * Aviso global de fallos de infraestructura.
+ *
+ * Gran parte de la app hace `.catch(() => {})` o cae a un estado vacío, así que cuando la API está
+ * caída o rompe, el usuario sólo ve secciones vacías y no distingue "no hay datos" de "falló".
+ * Al notificar desde acá —el único punto por el que pasan todas las peticiones— esos fallos se
+ * vuelven visibles sin tener que tocar cada llamada.
+ *
+ * Sólo se avisan fallos de RED y errores 5xx: los 4xx son respuestas esperadas del negocio
+ * (validaciones, no encontrado, sin permiso) que cada pantalla ya muestra donde corresponde.
+ */
+let onRequestError: ((message: string) => void) | null = null
+
+export function setRequestErrorHandler(handler: ((message: string) => void) | null) {
+  onRequestError = handler
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   const isJson = res.headers.get('content-type')?.includes('application/json')
   const body = isJson ? await res.json() : undefined
@@ -27,18 +44,27 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
   if (!res.ok) {
     const message = body?.message ?? `Error ${res.status}`
-    throw new ApiError(Array.isArray(message) ? message.join(', ') : message, res.status)
+    const text = Array.isArray(message) ? message.join(', ') : message
+    if (res.status >= 500) onRequestError?.(`El servidor respondió con un error (${res.status}).`)
+    throw new ApiError(text, res.status)
   }
 
   return body as T
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
-  })
+  let res: Response
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...options.headers },
+      ...options,
+    })
+  } catch {
+    // fetch sólo rechaza por fallo de red (API caída, sin conexión, CORS): no es un error de negocio.
+    onRequestError?.('No se pudo conectar con el servidor. Verificá que la API esté corriendo.')
+    throw new ApiError('No se pudo conectar con el servidor', 0)
+  }
   return handleResponse<T>(res)
 }
 
