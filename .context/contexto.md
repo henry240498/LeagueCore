@@ -44,4 +44,7 @@ No copiar versiones, estado de Git o resultados históricos como si fueran hecho
 - [testing.md](<testing.md>)
 - [base-datos.md](<base-datos.md>)
 - [seguridad.md](<seguridad.md>)
+
+## Trabajos en curso
+- [match-center-plan.md](<match-center-plan.md>) — Reinvención de la vista de partido (Match Center) por fases. Estado: FASE 0 (auditoría) completada.
 <!-- END ECOSYSTEM DETAILS -->

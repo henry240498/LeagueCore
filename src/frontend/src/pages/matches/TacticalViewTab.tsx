@@ -4,7 +4,6 @@ import { api } from '../../services/api'
 import { dataYToSvg } from '../../components/pitch/FootballPitch'
 import InteractiveFootballPitch from '../../components/pitch/InteractiveFootballPitch'
 import MatchCompareStats from '../../components/pitch/MatchCompareStats'
-import MatchScoreboardHeader from '../../components/pitch/MatchScoreboardHeader'
 import MatchTimeline from '../../components/pitch/MatchTimeline'
 import PlayerInfoPanel from '../../components/pitch/PlayerInfoPanel'
 import PlayerPitchViz from '../../components/pitch/PlayerPitchViz'
@@ -152,8 +151,6 @@ export default function TacticalViewTab({ match, onError }: { match: Match; onEr
 
   return (
     <div className="space-y-4">
-      <MatchScoreboardHeader match={match} />
-
       {starters.length === 0 ? (
         <div className="rounded-lg bg-white p-6 shadow">
           <p className="text-center text-slate-500">

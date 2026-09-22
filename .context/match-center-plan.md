@@ -1,0 +1,169 @@
+# Match Center — Reinvención de la vista de partido (plan por fases)
+
+> Registro de trabajo para retomar entre sesiones. **Estado global: FASE 0 (auditoría) COMPLETADA.**
+> Próximo paso: decidir superficie del Match Center (ver "Decisiones abiertas") y ejecutar FASE 1.
+> Fecha de inicio del registro: 2026-09-21.
+
+## Objetivo
+Reinventar por completo la vista de partido existente y convertirla en un **Match Center / Centro
+del Partido** profesional, completo y en tiempo real, **integrado nativamente** al sistema actual.
+
+## Reglas duras (no negociables)
+- La vista de partido YA EXISTE. **No crear una segunda vista, módulo, API, servicio, modelo ni
+  componente paralelo.** Reutilizar y extender.
+- **No inventar datos.** Si falta un dato: identificarlo, ver si existe en otra parte, reutilizarlo;
+  si no existe, dejar la integración preparada y mostrar un estado vacío apropiado.
+- Nunca mostrar `undefined`/`null`/`NaN`/errores técnicos al usuario.
+- Respetar arquitectura, navegación, auth, permisos, diseño y mecanismo de actualización existentes.
+- Avance por fases: cada fase debe compilar, no romper lo anterior, y quedar estable antes de seguir.
+- Diferenciar visualmente **métricas derivadas** (calculadas por el sistema) de datos oficiales.
+
+---
+
+## FASE 0 — Mapa de auditoría (RESULTADO)
+
+### Superficies actuales de "partido"
+| Superficie | Ruta | Archivo | Rol actual |
+|---|---|---|---|
+| Detalle de partido | `/partidos/:id` | `src/frontend/src/pages/matches/MatchDetailPage.tsx` (1413 líneas) | Vista principal de **lectura + edición**, con 11 pestañas monolíticas en un solo archivo |
+| Partido en vivo | `/partidos/:id/live` | `src/frontend/src/pages/matches/LiveMatchPage.tsx` (248 líneas) | **Herramienta de CARGA en vivo** (botones grandes para el estadístico en cancha), polling 10s. NO es una vista de espectador |
+| Lista | `/partidos` | `MatchesListPage.tsx` | Listado |
+| Alta/edición | `/partidos/nuevo`, `/partidos/:id/editar` | `MatchFormPage.tsx` | Formulario |
+| Reporte | `/reportes/partidos/:id` | `MatchDetailReportPage.tsx` | Reporte imprimible |
+
+Pestañas de `MatchDetailPage`: `info`, `teams`, `officials`, `result`, `events`, `stats`,
+`players`, `tactical`, `advanced`, `video`, `history` (todas como funciones dentro del mismo archivo:
+`InfoTab`, `TeamsCoachesTab`, `OfficialsTab`, `ResultTab`, `EventsTab`, `StatsTab`, `PlayersTab`,
+`TacticalViewTab`, `MatchTacticsTab`, `MatchVideoTab`, `HistoryTab`).
+
+### Componentes reutilizables (`src/frontend/src/components/pitch/`)
+- `MatchScoreboardHeader.tsx` — cabecera de marcador. Props: `{ match: Match }`.
+- `MatchTimeline.tsx` — línea de tiempo de eventos.
+- `MatchCompareStats.tsx` — estadísticas comparadas L/V. Props: `{ match: Match }`.
+- `FootballPitch.tsx` / `InteractiveFootballPitch.tsx` — cancha (estática / interactiva).
+- `PlayerPitchViz.tsx` — visualización de posiciones/jugador en cancha.
+
+### Backend — módulo `matches` (todo bajo `JwtAuthGuard`, prefijo `/api/v1/matches`)
+`src/backend/src/matches/`: `matches.service.ts`, `match-events.service.ts`,
+`match-participants.service.ts`, `match-stats.service.ts` + 18 DTOs.
+
+Endpoints disponibles (reutilizar TODOS, no duplicar):
+- Núcleo: `GET /`, `GET /:id`, `POST`, `PUT /:id`, `PATCH /:id/status`, `DELETE /:id`,
+  `GET /:id/history`, `GET /check-duplicates`.
+- Resultado por periodos: `PUT /:id/result`, `DELETE /:id/result/:period`.
+- Oficiales: `GET/POST /:id/officials`, `DELETE /:id/officials/:moId`.
+- Cuerpo técnico: `GET/POST /:id/coaches`, `DELETE ...`.
+- Alineaciones: `GET/POST /:id/lineups`, `DELETE ...`, `PATCH /:id/lineups/:lid/position`.
+- Formaciones: `GET /:id/formations`, `PUT /:id/formations`.
+- Analítica: `GET /:id/positions`, `GET /:id/advanced-metrics`,
+  `GET /:id/players/:pid/physical-stats`.
+- Timeline: `GET /:id/timeline` (lectura combinada de eventos).
+- Eventos: goals, cards, substitutions, fouls, offsides, shots (+ `GET /:id/shot-map`),
+  interruptions, penalty-kicks (POST/DELETE cada uno).
+- Tanda de penales: `GET/POST /:id/shootout-kicks`, `DELETE ...`.
+- Estadísticas de equipo: `GET /:id/team-stats`, `PUT /:id/team-stats/:teamId`.
+
+### Modelo de datos disponible (`src/frontend/src/types/match.ts`)
+- `Match`: competición, temporada (`seasonLabel`), `round`/`phase`/`groupName`/`leg`, venue (+foto),
+  clima (condición/temperatura/humedad/viento), `pitchCondition`, `attendance`, `televised`,
+  `dataOrigin`, `periodScores[]` (first_half/full_time/extra_time/penalties), `score`, escudos L/V.
+- `MatchLineupEntry`: foto, nacionalidad, `isStarting`, dorsal, posición, minutos, `posX/posY`,
+  goals/assists/yellow/red.
+- `MatchTeamStats`: posesión, tiros (on/off/blocked), córners, faltas, offsides, throw-ins,
+  goal-kicks, tiros libres, pases (+completados), touches.
+- `TimelineEvent`: goal|card|substitution|offside|foul|interruption (minute/extra, período, equipo,
+  jugador, asistencia, ownGoal, penalty, goalType, cardType, entra/sale, interruptionType).
+- `ShotMapEntry`: posX/posY, outcome, minuto, equipo, jugador, penalty, ownGoal, **xg**.
+- `MatchAdvancedMetric`: genérico `metricName`/`metricValue` + `provider`/`modelVersion` → soporta
+  xG/xA/PPDA/etc. **sin datos reales cargados todavía** (esquema listo).
+- `MatchPhysicalStats`: distancia, velocidad, sprints, aceleraciones (GPS) — esquema listo.
+- `MatchFormation`, `MatchPlayerPosition`, `ShootoutKick`, `MatchHistoryEntry`.
+
+### Tiempo real
+- **Solo polling.** `LiveMatchPage` hace `setInterval(load, 10000)`. `MatchDetailPage` carga una vez
+  (sin auto-refresh). **No hay WebSocket ni SSE** en el backend (verificado por grep).
+- Mecanismo a reutilizar/mejorar: polling. Extraer a un hook reutilizable (p. ej. `useMatchLive`).
+
+### Estados de partido (`MATCH_STATUSES` en constants.ts + parameters `match_status`)
+Existen: `scheduled`, `in_progress`, `finished`, `postponed`, `suspended`, `cancelled`.
+El DTO valida contra `constants.ts` **y** la categoría `match_status` de Parametrizaciones.
+
+### Qué existe / parcial / falta (frente al pedido)
+- **Existe (datos + endpoints):** cabecera, eventos, timeline, alineaciones, formaciones, stats de
+  equipo, shot-map (con xg), posiciones, métricas avanzadas (esquema), físico (esquema), penales,
+  tanda de penales, historial, clima/árbitro/asistencia/venue.
+- **Parcial:** tiempo real (polling básico, sin indicador de conexión/reconexión); estadísticas
+  individuales (hay goals/assists/cards/minutos por lineup, faltan tiros/pases/rating por jugador);
+  xG/xA (esquema `advanced_metrics` listo, sin datos); tabla/forma/H2H (existen en reportes/otros
+  módulos, verificar endpoint reutilizable).
+- **Falta (dato/UX):** estados HT/tiempo-extra/penales/abandonado como estado propio (derivables de
+  periodScores/shootout + in_progress); indicador LIVE/minuto en vivo real; momentum/gráficos xG;
+  heatmaps con datos reales (solo esquema de posiciones); comparador de jugadores en la vista;
+  seguir/favoritos/notificaciones (verificar si existe módulo); multimedia (MatchVideoTab existe);
+  compartir/deep-links.
+
+### Dependencias de datos que HOY no tienen datos reales (dejar preparado, no inventar)
+- `advanced_metrics` (xG/xA/PPDA/Field Tilt…): esquema y endpoint listos, sin filas → mostrar vacío.
+- `match_player_positions` (heatmaps/posición media): esquema listo, sin datos → mostrar vacío.
+- `physical-stats` (GPS): esquema listo, sin datos → mostrar vacío.
+- Rating por jugador y stats individuales de tiros/pases: no hay columna/endpoint dedicado.
+- Tabla de posiciones / forma / H2H / próximos: confirmar endpoint reutilizable (standings/reportes)
+  antes de FASE 7.
+
+---
+
+## Decisiones abiertas (resolver antes de FASE 1)
+1. **¿Qué superficie es el Match Center de espectador?**
+   - Recomendado: **reinventar `MatchDetailPage` (`/partidos/:id`)** como el Match Center profesional
+     (consumo), y **conservar `LiveMatchPage` (`/live`)** como "modo carga en vivo" (data-entry), que
+     es un rol distinto, no una vista duplicada.
+   - Alternativa: fusionar carga + consumo (más riesgo de romper el flujo del estadístico).
+
+---
+
+## Decisión tomada (2026-09-21)
+- Superficie del Match Center: **reinventar `MatchDetailPage` (`/partidos/:id`)**; `LiveMatchPage`
+  (`/partidos/:id/live`) se conserva como "modo carga en vivo" (data-entry del estadístico).
+
+## Fases (checklist de estado)
+- [x] **FASE 0** — Auditoría y mapeo (P0). ← este documento.
+- [x] **FASE 1** — Core: cabecera + estados + info contextual (P1, crítica).
+  - Se **mejoró el componente existente** `components/pitch/MatchScoreboardHeader.tsx` (no se duplicó):
+    contexto (competición/temporada/ronda/fase/grupo), badge de estado con **indicador EN VIVO**
+    (pulso) y minuto/añadido opcionales, marcador actual (`match.score`) o por períodos (1T/TE/penales),
+    `leg`, escudos, y meta (fecha, hora, sede, asistencia, árbitro, asistentes, VAR, TV).
+  - Integrado a nivel de página en `MatchDetailPage` (arriba de las pestañas), con `context`
+    (enlaces navegables) y `actions` (Modo carga/IA/Editar/Eliminar) vía props opcionales.
+  - Se **quitó el uso duplicado** de `MatchScoreboardHeader` dentro de `TacticalViewTab`.
+  - Oficiales para árbitro/VAR: se reutiliza `GET /:id/officials` (sin endpoint nuevo).
+  - Pendientes de dato (no inventados): `liveMinute`/`addedMinutes` son props opcionales sin fuente
+    aún (se cablearán en FASE 3 con el timeline/polling); "marcador agregado" real requiere el otro
+    partido de la llave → sólo se muestra `leg`, no se inventa el agregado.
+  - Estados HT/tiempo-extra/penales/abandonado NO existen como `status` propio (sólo los 6 de
+    `MATCH_STATUSES`); se representan con el estado real + sub-marcadores por período.
+- [ ] **FASE 2** — Eventos + timeline (períodos, filtros, destacar goles, animación) (P1).
+- [ ] **FASE 3** — Tiempo real (hook de polling reutilizable, indicador conexión/última act./reconexión) (P1).
+- [ ] **FASE 4** — Estadísticas principales (comparativa L/V) (P2).
+- [ ] **FASE 5** — Alineaciones + formaciones sobre cancha (P2).
+- [ ] **FASE 6** — Estadísticas de jugadores (panel al seleccionar) (P2).
+- [ ] **FASE 7** — Contexto de competición (tabla, forma, H2H, próximos) (P3).
+- [ ] **FASE 8** — Análisis avanzado (xG/xA/PPDA + gráficos), solo si hay datos (P4).
+- [ ] **FASE 9** — Shot map + heatmaps (P4).
+- [ ] **FASE 10** — Comparación de jugadores (P4).
+- [ ] **FASE 11** — Resumen post-partido (LIVE → FINAL en la misma vista) (P5).
+- [ ] **FASE 12** — Seguimiento y notificaciones (solo si ya existe infraestructura) (P5).
+- [ ] **FASE 13** — Multimedia y contenido adicional (P5).
+- [ ] **FASE 14** — Pasada UX/UI final (P6).
+- [ ] **FASE 15** — Rendimiento y optimización (P6).
+- [ ] **FASE 16** — Validación completa de estados/responsive/errores (P7).
+
+## Regla de avance
+No pasar a la siguiente fase si quedan: errores de compilación/runtime, datos incorrectos,
+funcionalidades rotas, peticiones duplicadas, componentes duplicados, o estados LIVE inconsistentes.
+
+## Bitácora de avance
+- 2026-09-21 — FASE 0 completada. Auditoría registrada.
+- 2026-09-21 — Decisión de superficie tomada (MatchDetailPage = Match Center).
+- 2026-09-21 — FASE 1 completada (cabecera profesional integrada, sin duplicar componentes).
+  Pendiente de verificación: `npm run build` en frontend (no hay node_modules en el entorno de trabajo).
+  Próximo: FASE 2 (eventos + timeline).
