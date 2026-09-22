@@ -17,6 +17,7 @@ import {
   type MatchTeamStats,
   type TimelineEvent,
 } from '../../types/match'
+import MatchChartsSection from './MatchChartsSection'
 import MatchMapsSection from './MatchMapsSection'
 
 // FASE 2-11 del Match Center: la experiencia de CONSULTA reinventada del partido, en una sola vista.
@@ -67,7 +68,20 @@ export default function MatchCenterTab({ match, live, onError }: Props) {
 
   return (
     <div className="space-y-6">
-      <StatusBar connected={connected} lastUpdatedAt={lastUpdatedAt} isLive={isLive} onRefresh={refresh} />
+      <LiveEventToasts
+        timeline={timeline}
+        homeTeamId={match.homeTeamId}
+        homeTeamName={match.homeTeamName ?? 'Local'}
+        awayTeamName={match.awayTeamName ?? 'Visitante'}
+      />
+
+      <StatusBar
+        connected={connected}
+        lastUpdatedAt={lastUpdatedAt}
+        isLive={isLive}
+        onRefresh={refresh}
+        extra={<FollowButton matchId={match.id} />}
+      />
 
       {isFinished && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -80,8 +94,15 @@ export default function MatchCenterTab({ match, live, onError }: Props) {
       <StatsSection match={match} teamStats={teamStats} />
       <LineupsSection match={match} lineups={lineups} />
       <MatchMapsSection matchId={match.id} onError={onError} />
+      <MatchChartsSection
+        matchId={match.id}
+        homeTeamId={match.homeTeamId}
+        homeTeamName={match.homeTeamName ?? 'Local'}
+        awayTeamName={match.awayTeamName ?? 'Visitante'}
+      />
       <AdvancedSection matchId={match.id} />
       <PlayerCompareSection lineups={lineups} />
+      <MatchExtraInfo match={match} />
       <ContextSection match={match} onError={onError} />
     </div>
   )
@@ -93,11 +114,13 @@ function StatusBar({
   lastUpdatedAt,
   isLive,
   onRefresh,
+  extra,
 }: {
   connected: boolean
   lastUpdatedAt: Date | null
   isLive: boolean
   onRefresh: () => void
+  extra?: ReactNode
 }) {
   const [, force] = useState(0)
   // Re-renderiza el "hace Ns" cada 5 s sin volver a pedir datos.
@@ -126,10 +149,160 @@ function StatusBar({
           </span>
         )}
       </div>
-      <button type="button" onClick={onRefresh} className="rounded-md border border-slate-300 px-2.5 py-1 font-medium text-slate-600 hover:bg-slate-50">
-        ↻ Actualizar
-      </button>
+      <div className="flex items-center gap-2">
+        {extra}
+        <button type="button" onClick={onRefresh} className="rounded-md border border-slate-300 px-2.5 py-1 font-medium text-slate-600 hover:bg-slate-50">
+          ↻ Actualizar
+        </button>
+      </div>
     </div>
+  )
+}
+
+// ------------------------------------------------------------- Seguir + notificaciones (FASE 12)
+// No existe un sistema de notificaciones/favoritos en el backend (auditoría FASE 0), así que esto
+// NO duplica ninguno: la preferencia "seguir" se guarda por-visitante en localStorage y los avisos
+// de eventos nuevos son toasts en-página mientras el partido está abierto. (Un push en segundo plano
+// requeriría infraestructura de servidor que hoy no existe.)
+const FOLLOW_KEY = 'lc:followed-matches'
+
+function readFollowed(): number[] {
+  try {
+    const raw = localStorage.getItem(FOLLOW_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'number') : []
+  } catch {
+    return []
+  }
+}
+
+function FollowButton({ matchId }: { matchId: number }) {
+  const [followed, setFollowed] = useState(false)
+  useEffect(() => {
+    setFollowed(readFollowed().includes(matchId))
+  }, [matchId])
+
+  const toggle = () => {
+    try {
+      const set = new Set(readFollowed())
+      if (set.has(matchId)) set.delete(matchId)
+      else set.add(matchId)
+      localStorage.setItem(FOLLOW_KEY, JSON.stringify([...set]))
+      setFollowed(set.has(matchId))
+    } catch {
+      // localStorage no disponible (modo privado); se ignora.
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className={`rounded-md px-2.5 py-1 font-medium ${
+        followed ? 'bg-amber-400 text-amber-950' : 'border border-slate-300 text-slate-600 hover:bg-slate-50'
+      }`}
+      title={followed ? 'Dejar de seguir este partido' : 'Seguir este partido'}
+    >
+      {followed ? '★ Siguiendo' : '☆ Seguir'}
+    </button>
+  )
+}
+
+function toastText(e: TimelineEvent, homeTeamId: number, homeTeamName: string, awayTeamName: string): string {
+  const team = e.teamId === homeTeamId ? homeTeamName : e.teamId != null ? awayTeamName : ''
+  const suffix = team ? ` · ${team}` : ''
+  switch (e.type) {
+    case 'goal':
+      return `⚽ ¡Gol! ${e.playerName ?? ''}${suffix}`
+    case 'card':
+      return `${e.cardType === 'red' ? '🟥' : '🟨'} ${e.playerName ?? 'Tarjeta'}${suffix}`
+    case 'substitution':
+      return `🔄 Cambio: ${e.playerInName ?? '—'} por ${e.playerOutName ?? '—'}${suffix}`
+    default:
+      return 'Nuevo evento'
+  }
+}
+
+function LiveEventToasts({
+  timeline,
+  homeTeamId,
+  homeTeamName,
+  awayTeamName,
+}: {
+  timeline: TimelineEvent[]
+  homeTeamId: number
+  homeTeamName: string
+  awayTeamName: string
+}) {
+  const [toasts, setToasts] = useState<{ key: string; text: string }[]>([])
+  // null hasta el primer render: así no se disparan avisos por los eventos ya existentes al abrir.
+  const seenRef = useRef<Set<string> | null>(null)
+
+  useEffect(() => {
+    const ids = new Set(timeline.map((e) => `${e.type}-${e.id}`))
+    if (seenRef.current === null) {
+      seenRef.current = ids
+      return
+    }
+    const fresh = timeline.filter(
+      (e) =>
+        !seenRef.current!.has(`${e.type}-${e.id}`) &&
+        (e.type === 'goal' || e.type === 'card' || e.type === 'substitution'),
+    )
+    seenRef.current = ids
+    if (fresh.length === 0) return
+
+    const added = fresh.map((e) => ({
+      key: `${e.type}-${e.id}-${Date.now()}-${Math.random()}`,
+      text: toastText(e, homeTeamId, homeTeamName, awayTeamName),
+    }))
+    setToasts((prev) => [...prev, ...added])
+    for (const t of added) {
+      setTimeout(() => setToasts((prev) => prev.filter((x) => x.key !== t.key)), 6000)
+    }
+  }, [timeline, homeTeamId, homeTeamName, awayTeamName])
+
+  if (toasts.length === 0) return null
+  return (
+    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex max-w-xs flex-col gap-2">
+      {toasts.map((t) => (
+        <div
+          key={t.key}
+          className="pointer-events-auto animate-pulse rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg"
+        >
+          {t.text}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ------------------------------------------------------- Información adicional / multimedia (FASE 13)
+function MatchExtraInfo({ match }: { match: Match }) {
+  const rows: { label: string; value: string }[] = []
+  if (match.venueName) rows.push({ label: 'Estadio', value: match.venueName })
+  if (match.attendance != null) rows.push({ label: 'Asistencia', value: match.attendance.toLocaleString('es-PY') })
+  if (match.weatherCondition) rows.push({ label: 'Clima', value: match.weatherCondition })
+  if (match.temperatureCelsius != null) rows.push({ label: 'Temperatura', value: `${match.temperatureCelsius}°C` })
+  if (match.windKmh != null) rows.push({ label: 'Viento', value: `${match.windKmh} km/h` })
+  if (match.humidityPct != null) rows.push({ label: 'Humedad', value: `${match.humidityPct}%` })
+  if (match.pitchCondition) rows.push({ label: 'Estado del campo', value: match.pitchCondition })
+  rows.push({ label: 'Transmisión', value: match.televised ? 'Televisado' : 'No televisado' })
+
+  return (
+    <section className="rounded-lg bg-white p-4 shadow sm:p-6">
+      <h2 className="mb-3 text-lg font-bold">ℹ️ Información adicional</h2>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
+        {rows.map((r) => (
+          <div key={r.label}>
+            <dt className="text-xs uppercase tracking-wide text-slate-400">{r.label}</dt>
+            <dd className="font-medium text-slate-700">{r.value}</dd>
+          </div>
+        ))}
+      </dl>
+      {match.comments && <p className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">{match.comments}</p>}
+      <p className="mt-3 text-xs text-slate-400">Videos y repeticiones del partido: pestaña "🎬 Video".</p>
+    </section>
   )
 }
 

@@ -1,7 +1,8 @@
 # Match Center — Reinvención de la vista de partido (plan por fases)
 
-> Registro de trabajo para retomar entre sesiones. **Estado global: FASES 0–16 COMPLETADAS**
-> (12 = N/A sin infra; 8/13 parciales por datos/ya existente). Match Center integrado y verificado.
+> Registro de trabajo para retomar entre sesiones. **Estado global: MÓDULO COMPLETO — FASES 0–16.**
+> (8 completada con gráficos derivados de datos reales; 12 implementada sin infra previa vía
+> localStorage + toasts en-página; 13 con info adicional real + video en su pestaña.) Verificado.
 > Fecha de inicio del registro: 2026-09-21.
 
 ## Objetivo
@@ -155,16 +156,24 @@ El DTO valida contra `constants.ts` **y** la categoría `match_status` de Parame
 - [x] **FASE 7** — Contexto. Tabla (`/seasons/:id/standings`, resalta ambos equipos), forma reciente
   (últimos 5 vía `/matches?teamId&status=finished`), próximos (`?status=scheduled`), y link al reporte
   H2H existente (`/reportes/enfrentamientos`).
-- [~] **FASE 8** — Avanzado. Sección `advanced-metrics` con estado vacío honesto (no hay datos cargados);
-  gráficos xG/momentum pendientes hasta tener datos. Marcado como "derivadas/externas".
+- [x] **FASE 8** — Avanzado. (a) Sección `advanced-metrics` (xG/xA/PPDA externos) con estado vacío honesto.
+  (b) **Gráficos derivados** (`MatchChartsSection`): **Momentum** (presión local/visitante por tramos de
+  5', desde tiros/goles reales del shot-map) y **xG acumulado** (líneas por equipo, sólo si los tiros
+  traen xG). Rotulados "derivadas". Sin inventar valores (si no hay tiros, no hay gráfico).
 - [x] **FASE 9** — Shot map + heatmaps. Reusa `MatchMapsSection` (`/insights/matches/:id/maps`).
 - [x] **FASE 10** — Comparación de jugadores. Selector A/B + `StatBars` con stats reales del partido.
 - [x] **FASE 11** — Resumen post-partido. Banner "Resumen final" cuando `finished`; la misma vista
   Centro evoluciona LIVE → FINAL (no hay página aparte).
-- [N/A] **FASE 12** — Seguimiento/notificaciones. La auditoría no encontró módulo de notificaciones/
-  favoritos → no se crea uno paralelo. Pendiente si se agrega esa infraestructura.
-- [~] **FASE 13** — Multimedia. Ya existe `MatchVideoTab` (pestaña Video); no se duplica. Clima/asistencia
-  ya se muestran en la cabecera.
+- [x] **FASE 12** — Seguimiento/notificaciones. No existía infraestructura (auditoría) → se implementó
+  sin duplicar nada: **"Seguir/Dejar de seguir"** por-visitante en `localStorage` (`FollowButton`), y
+  **avisos en vivo** (`LiveEventToasts`) que muestran toasts al llegar goles/tarjetas/cambios nuevos
+  mientras el partido está abierto (detecta ids nuevos del timeline entre polls; no floodea al abrir).
+  Nota: el push en 2º plano (con la pestaña cerrada) no se incluye — requiere infraestructura de
+  servidor/Service Worker que hoy no existe.
+- [x] **FASE 13** — Multimedia / info adicional. `MatchExtraInfo`: estadio, asistencia, clima,
+  temperatura, viento, humedad, estado del campo, transmisión y comentarios — todos datos reales del
+  partido. Video/repeticiones siguen en la pestaña `🎬 Video` (no se duplica). Streaming/highlights
+  externos: no hay fuente autorizada → no se inventan enlaces.
 - [~] **FASE 14** — UX/UI. Aplicada inline (responsive, estados vacío/carga, feedback de conexión,
   resaltes, filtros). Falta una pasada dedicada de pulido.
 - [x] **FASE 15** — Rendimiento. (a) `useMatchLive` sólo re-renderiza cuando los datos cambian entre
