@@ -125,7 +125,7 @@ export default function VenueFormPage() {
           {photoToShow ? (
             <img src={photoToShow} alt="Foto del estadio" className="h-20 w-28 rounded-lg object-cover" />
           ) : (
-            <div className="flex h-20 w-28 items-center justify-center rounded-lg bg-slate-200 text-3xl">🏟️</div>
+            <div className="flex h-20 w-28 items-center justify-center rounded-lg bg-slate-200 text-3xl" aria-hidden>🏟️</div>
           )}
           <div>
             <label className="inline-block cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">

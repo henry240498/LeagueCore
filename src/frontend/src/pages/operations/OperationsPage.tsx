@@ -200,8 +200,8 @@ export default function OperationsPage() {
                 <tr>
                   <th className="text-left">Jugador</th>
                   <th className="text-right">Faltas</th>
-                  <th className="text-right">🟨</th>
-                  <th className="text-right">🟥</th>
+                  <th className="text-right" aria-label="Tarjetas amarillas">🟨</th>
+                  <th className="text-right" aria-label="Tarjetas rojas">🟥</th>
                   <th className="text-right">Riesgo</th>
                 </tr>
               </thead>

@@ -774,7 +774,7 @@ function PlayerRow({ p, subbed, onOpen }: { p: MatchLineupEntry; subbed: boolean
         {p.playerFullName}
         {p.position ? <span className="text-slate-400"> · {p.position}</span> : ''}
       </button>
-      {subbed && <span className="shrink-0 text-xs text-slate-400" title="Sustituido">↩</span>}
+      {subbed && <span className="shrink-0 text-xs text-slate-400" title="Sustituido" aria-label="Sustituido" role="img">↩</span>}
       {p.minutesPlayed != null && <span className="shrink-0 text-xs text-slate-400">{p.minutesPlayed}′</span>}
       {badges.length > 0 && <span className="shrink-0">{badges.join('')}</span>}
     </li>

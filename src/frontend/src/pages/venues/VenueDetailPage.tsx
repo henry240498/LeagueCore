@@ -43,7 +43,7 @@ export default function VenueDetailPage() {
           {photoUrl ? (
             <img src={photoUrl} alt={venue.name} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full items-center justify-center text-6xl">🏟️</div>
+            <div className="flex h-full items-center justify-center text-6xl" aria-hidden>🏟️</div>
           )}
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 p-6">

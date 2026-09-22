@@ -415,8 +415,8 @@ function TeamEventList({
                 <span className="flex flex-none gap-0.5 text-xs">
                   {p.goals > 0 && <span title={`${p.goals} gol(es)`}>{'⚽'.repeat(Math.min(p.goals, 3))}</span>}
                   {p.assists > 0 && <span title={`${p.assists} asistencia(s)`}>🅰️</span>}
-                  {p.yellowCards > 0 && <span title="Amarilla">🟨</span>}
-                  {p.redCards > 0 && <span title="Roja">🟥</span>}
+                  {p.yellowCards > 0 && <span title="Amarilla" aria-label="Tarjeta amarilla" role="img">🟨</span>}
+                  {p.redCards > 0 && <span title="Roja" aria-label="Tarjeta roja" role="img">🟥</span>}
                   {subOut && <span title={`Cambio ${subOut.minute ?? ''}'`}>🔄</span>}
                 </span>
               </button>

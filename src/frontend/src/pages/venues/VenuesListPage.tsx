@@ -105,7 +105,7 @@ export default function VenuesListPage() {
                       {photoUrl ? (
                         <img src={photoUrl} alt={v.name} className="h-full w-full object-cover" />
                       ) : (
-                        <span className="text-lg">🏟️</span>
+                        <span className="text-lg" aria-hidden>🏟️</span>
                       )}
                     </div>
                   </td>

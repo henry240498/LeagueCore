@@ -102,7 +102,7 @@ export default function Navbar() {
     <nav className="bg-slate-900 text-white">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <button type="button" className="flex items-center gap-2 font-bold" onClick={() => navigate('/dashboard')}>
-          <span className="text-xl">⚽</span>
+          <span className="text-xl" aria-hidden>⚽</span>
           <span>LeagueCore</span>
         </button>
 

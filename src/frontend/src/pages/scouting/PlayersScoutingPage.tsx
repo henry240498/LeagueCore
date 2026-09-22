@@ -154,7 +154,7 @@ export default function PlayersScoutingPage() {
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-slate-200 text-slate-500">
               <tr>
-                <th className="px-3 py-2">☐</th>
+                <th className="px-3 py-2" aria-label="Seleccionar">☐</th>
                 <th className="px-3 py-2">Jugador</th>
                 <th className="px-3 py-2">Edad</th>
                 <th className="px-3 py-2">Goles</th>

@@ -120,7 +120,7 @@ export default function ClubDetailPage() {
             {club.logoUrl ? (
               <img src={club.logoUrl} alt={`Escudo de ${club.name}`} className="h-16 w-16 rounded-lg object-cover" />
             ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-slate-200 text-2xl">🏟️</div>
+              <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-slate-200 text-2xl" aria-hidden>🏟️</div>
             )}
             <div>
               <h1 className="text-2xl font-bold sm:text-3xl">{club.name}</h1>
