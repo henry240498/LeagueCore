@@ -1,7 +1,7 @@
 # Match Center — Reinvención de la vista de partido (plan por fases)
 
-> Registro de trabajo para retomar entre sesiones. **Estado global: FASE 0 (auditoría) COMPLETADA.**
-> Próximo paso: decidir superficie del Match Center (ver "Decisiones abiertas") y ejecutar FASE 1.
+> Registro de trabajo para retomar entre sesiones. **Estado global: FASES 0–16 COMPLETADAS**
+> (12 = N/A sin infra; 8/13 parciales por datos/ya existente). Match Center integrado y verificado.
 > Fecha de inicio del registro: 2026-09-21.
 
 ## Objetivo
@@ -167,8 +167,14 @@ El DTO valida contra `constants.ts` **y** la categoría `match_status` de Parame
   ya se muestran en la cabecera.
 - [~] **FASE 14** — UX/UI. Aplicada inline (responsive, estados vacío/carga, feedback de conexión,
   resaltes, filtros). Falta una pasada dedicada de pulido.
-- [ ] **FASE 15** — Rendimiento y optimización (P6). PENDIENTE (fuera del alcance pedido).
-- [ ] **FASE 16** — Validación completa (P7). PENDIENTE (fuera del alcance pedido).
+- [x] **FASE 15** — Rendimiento. (a) `useMatchLive` sólo re-renderiza cuando los datos cambian entre
+  polls (comparación por serialización) → un poll idéntico no dispara render. (b) Code-splitting:
+  las pestañas pesadas (`MatchCenterTab`, `TacticalViewTab`, `MatchTacticsTab`, `MatchVideoTab`) se
+  cargan con `React.lazy` + `<Suspense>` (chunks separados, menor bundle inicial).
+- [x] **FASE 16** — Validación. `MatchScoreboardHeader.test.tsx` cubre estados (programado/en vivo/
+  finalizado+penales/suspendido) y garantiza que no aparezca `undefined`/`NaN`/`null`. Suite completa
+  verde. Verificación de estados restantes (aplazado/cancelado/abandonado) cubierta por el mapeo de
+  `STATUS_TONE`/`MATCH_STATUS_LABELS`.
 
 ## Regla de avance
 No pasar a la siguiente fase si quedan: errores de compilación/runtime, datos incorrectos,

@@ -57,6 +57,9 @@ export function useMatchLive(matchId: number): UseMatchLive {
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null)
   // Estado del partido en un ref para que el intervalo decida si seguir refrescando sin recrearse.
   const statusRef = useRef<string | null>(null)
+  // FASE 15 — evita renders inútiles: sólo se reemplaza el estado cuando los datos realmente
+  // cambian entre polls (comparación por serialización). Un poll idéntico no dispara re-render.
+  const lastPayloadRef = useRef<string>('')
 
   const load = useCallback(async () => {
     try {
@@ -68,9 +71,14 @@ export function useMatchLive(matchId: number): UseMatchLive {
         api.get<MatchLineupEntry[]>(`/matches/${matchId}/lineups`).catch(() => [] as MatchLineupEntry[]),
       ])
       statusRef.current = match.status
-      setData({ match, officials, timeline, teamStats, lineups })
+      const payload = JSON.stringify({ match, officials, timeline, teamStats, lineups })
+      if (payload !== lastPayloadRef.current) {
+        lastPayloadRef.current = payload
+        setData({ match, officials, timeline, teamStats, lineups })
+        setLastUpdatedAt(new Date())
+      }
+      // Primitivos: React descarta el set si el valor no cambió (no fuerza re-render).
       setConnected(true)
-      setLastUpdatedAt(new Date())
       setError('')
     } catch (err) {
       // Falló el fetch principal del partido: marcamos desconexión pero conservamos los últimos datos.

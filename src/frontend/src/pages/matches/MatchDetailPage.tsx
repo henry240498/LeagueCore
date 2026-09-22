@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../context/AuthContext'
 import { api } from '../../services/api'
 import MatchScoreboardHeader from '../../components/pitch/MatchScoreboardHeader'
 import { useMatchLive } from '../../hooks/useMatchLive'
-import MatchCenterTab from './MatchCenterTab'
-import MatchTacticsTab from './MatchTacticsTab'
-import MatchVideoTab from './MatchVideoTab'
+// TacticalViewTab NO se carga con lazy: el reporte de partido lo importa de forma estática, así que
+// separarlo en un chunk aparte sería inefectivo (quedaría igual en el bundle principal).
 import TacticalViewTab from './TacticalViewTab'
 import type { Official } from '../../types/official'
 import type { Player } from '../../types/player'
@@ -36,6 +35,12 @@ import type {
   ShootoutKick,
   TimelineEvent,
 } from '../../types/match'
+
+// FASE 15 — code-splitting: las pestañas pesadas se cargan bajo demanda (chunks separados),
+// reduciendo el bundle inicial. Se envuelven en <Suspense> al renderizarlas.
+const MatchCenterTab = lazy(() => import('./MatchCenterTab'))
+const MatchTacticsTab = lazy(() => import('./MatchTacticsTab'))
+const MatchVideoTab = lazy(() => import('./MatchVideoTab'))
 
 type Tab =
   | 'center'
@@ -192,18 +197,20 @@ export default function MatchDetailPage() {
         ))}
       </div>
 
-      {tab === 'center' && <MatchCenterTab match={match} live={live} onError={setError} />}
-      {tab === 'info' && <InfoTab match={match} />}
-      {tab === 'teams' && <TeamsCoachesTab match={match} onError={setError} />}
-      {tab === 'officials' && <OfficialsTab matchId={matchId} onError={setError} />}
-      {tab === 'result' && <ResultTab match={match} onReload={load} onError={setError} />}
-      {tab === 'events' && <EventsTab match={match} onError={setError} />}
-      {tab === 'stats' && <StatsTab match={match} onError={setError} />}
-      {tab === 'players' && <PlayersTab match={match} onError={setError} />}
-      {tab === 'tactical' && <TacticalViewTab match={match} onError={setError} />}
-      {tab === 'advanced' && <MatchTacticsTab match={match} onError={setError} />}
-      {tab === 'video' && <MatchVideoTab match={match} onError={setError} />}
-      {tab === 'history' && <HistoryTab matchId={matchId} />}
+      <Suspense fallback={<p className="p-8 text-center text-slate-500">Cargando sección…</p>}>
+        {tab === 'center' && <MatchCenterTab match={match} live={live} onError={setError} />}
+        {tab === 'info' && <InfoTab match={match} />}
+        {tab === 'teams' && <TeamsCoachesTab match={match} onError={setError} />}
+        {tab === 'officials' && <OfficialsTab matchId={matchId} onError={setError} />}
+        {tab === 'result' && <ResultTab match={match} onReload={load} onError={setError} />}
+        {tab === 'events' && <EventsTab match={match} onError={setError} />}
+        {tab === 'stats' && <StatsTab match={match} onError={setError} />}
+        {tab === 'players' && <PlayersTab match={match} onError={setError} />}
+        {tab === 'tactical' && <TacticalViewTab match={match} onError={setError} />}
+        {tab === 'advanced' && <MatchTacticsTab match={match} onError={setError} />}
+        {tab === 'video' && <MatchVideoTab match={match} onError={setError} />}
+        {tab === 'history' && <HistoryTab matchId={matchId} />}
+      </Suspense>
     </div>
   )
 }
