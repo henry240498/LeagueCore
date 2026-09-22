@@ -10,6 +10,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -29,6 +30,9 @@ function requestMeta(req: AuthenticatedRequest) {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // Anti fuerza bruta: el usuario `admin` sembrado usa una contraseña conocida, así que sin límite
+  // un atacante podría probar credenciales sin coste. 10 intentos por minuto y por IP.
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('login')
   async login(
     @Body() dto: LoginDto,

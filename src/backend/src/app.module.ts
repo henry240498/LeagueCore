@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AiModule } from './ai/ai.module';
 import { AuthModule } from './auth/auth.module';
 import { ClubsModule } from './clubs/clubs.module';
@@ -34,6 +36,10 @@ import { VideogameRatingsModule } from './videogame-ratings/videogame-ratings.mo
 
 @Module({
   imports: [
+    // Límite global generoso: una sesión normal del Match Center hace ~30 req/min por el polling,
+    // así que 300/min no molesta al uso legítimo pero corta abusos. El login tiene su propio
+    // límite estricto (ver auth.controller.ts).
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
     DatabaseModule,
     AiModule,
     AuthModule,
@@ -67,5 +73,6 @@ import { VideogameRatingsModule } from './videogame-ratings/videogame-ratings.mo
     ...(process.env.NODE_ENV === 'production' ? [] : [DevModule]),
   ],
   controllers: [HealthController, DashboardController],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

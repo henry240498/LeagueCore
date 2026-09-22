@@ -12,6 +12,28 @@ import * as sql from 'mssql';
 import { SQL_POOL } from '../database/database.module';
 import { passwordPolicyError } from './password-policy';
 
+/**
+ * Secreto de firma/verificación de JWT.
+ *
+ * El valor de desarrollo está publicado en el repositorio, así que usarlo en producción permitiría
+ * a cualquiera firmar un token de administrador. Por eso en producción la variable es OBLIGATORIA:
+ * si falta, se lanza en vez de caer a un default conocido. En desarrollo se permite el valor local
+ * para no romper el arranque de quien clona el repo.
+ */
+const DEV_JWT_SECRET = 'dev-secret-change-me';
+
+export function resolveJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (secret && secret.trim().length > 0) return secret;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'JWT_SECRET no está definido. Es obligatorio en producción: sin él, los tokens se firmarían ' +
+        'con un secreto público y cualquiera podría suplantar a un administrador.',
+    );
+  }
+  return DEV_JWT_SECRET;
+}
+
 export interface UserRow {
   id: number;
   username: string;
@@ -135,7 +157,7 @@ export class AuthService {
   }
 
   private signToken(user: UserRow): string {
-    const secret = process.env.JWT_SECRET ?? 'dev-secret-change-me';
+    const secret = resolveJwtSecret();
     const expiresIn = process.env.JWT_EXPIRES_IN ?? '24h';
     return jwt.sign(
       {
@@ -171,8 +193,7 @@ export class AuthService {
   async validateSession(token: string): Promise<{ id: number; username: string; role: string } | null> {
     let payload: jwt.JwtPayload;
     try {
-      const secret = process.env.JWT_SECRET ?? 'dev-secret-change-me';
-      payload = jwt.verify(token, secret) as jwt.JwtPayload;
+      payload = jwt.verify(token, resolveJwtSecret()) as jwt.JwtPayload;
     } catch {
       return null;
     }
