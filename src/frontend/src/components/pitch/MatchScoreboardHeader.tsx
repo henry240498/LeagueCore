@@ -52,6 +52,12 @@ export default function MatchScoreboardHeader({ match, officials, liveMinute, ad
   const extraTime = match.periodScores.find((p) => p.period === 'extra_time')
   const penalties = match.periodScores.find((p) => p.period === 'penalties')
 
+  // Estado LIVE fino: los estados oficiales son sólo 6 (no hay HT/ET/penales como status propio),
+  // pero se puede DERIVAR de datos reales ya presentes en el partido. Si hay marcador de penales
+  // registrado, el partido está en la tanda; si hay marcador de prórroga, está en tiempo extra.
+  // (Entretiempo no es derivable: no existe un marcador ni evento de límite de tiempo en los datos.)
+  const livePhase = isLive ? (penalties ? 'Penales' : extraTime ? 'Prórroga' : null) : null
+
   // Marcador a mostrar en grande: el score actual (live) si existe, si no el resultado final por
   // períodos. Para un partido programado no hay marcador -> "vs".
   const current = match.score ?? (fullTime ? { homeScore: fullTime.homeScore, awayScore: fullTime.awayScore } : null)
@@ -91,7 +97,13 @@ export default function MatchScoreboardHeader({ match, officials, liveMinute, ad
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-2 sm:px-6">
         <div className="min-w-0 truncate text-xs text-white/70 sm:text-sm">{context ?? (autoContext || 'Partido')}</div>
         <div className="flex items-center gap-2">
-          <StatusBadge status={match.status} isLive={isLive} liveMinute={liveMinute} addedMinutes={addedMinutes} />
+          <StatusBadge
+            status={match.status}
+            isLive={isLive}
+            liveMinute={liveMinute}
+            addedMinutes={addedMinutes}
+            livePhase={livePhase}
+          />
           {actions}
         </div>
       </div>
@@ -149,16 +161,20 @@ function StatusBadge({
   isLive,
   liveMinute,
   addedMinutes,
+  livePhase,
 }: {
   status: string
   isLive: boolean
   liveMinute?: number | null
   addedMinutes?: number | null
+  livePhase?: string | null
 }) {
   const tone = STATUS_TONE[status] ?? 'bg-slate-500 text-white'
   const label = MATCH_STATUS_LABELS[status as keyof typeof MATCH_STATUS_LABELS] ?? status
 
   if (isLive) {
+    // En penales el minuto no aplica; en prórroga/juego normal sí se muestra si está disponible.
+    const showMinute = liveMinute != null && livePhase !== 'Penales'
     return (
       <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${tone}`}>
         <span className="relative flex h-2 w-2">
@@ -166,7 +182,8 @@ function StatusBadge({
           <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
         </span>
         EN VIVO
-        {liveMinute != null && (
+        {livePhase && <span>· {livePhase}</span>}
+        {showMinute && (
           <span className="tabular-nums">
             {' '}
             {liveMinute}

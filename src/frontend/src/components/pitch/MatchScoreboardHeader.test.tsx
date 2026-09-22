@@ -93,4 +93,33 @@ describe('MatchScoreboardHeader', () => {
     render(<MatchScoreboardHeader match={baseMatch({ status: 'suspended' })} />)
     expect(screen.getByText('Suspendido')).toBeInTheDocument()
   })
+
+  it('en vivo con prórroga: deriva "Prórroga" del marcador de tiempo extra', () => {
+    render(
+      <MatchScoreboardHeader
+        match={baseMatch({
+          status: 'in_progress',
+          score: { homeScore: 1, awayScore: 1 },
+          periodScores: [{ period: 'extra_time', homeScore: 0, awayScore: 0 }],
+        })}
+      />,
+    )
+    expect(screen.getByText(/Prórroga/)).toBeInTheDocument()
+  })
+
+  it('en vivo con penales: deriva "Penales" del marcador de la tanda', () => {
+    render(
+      <MatchScoreboardHeader
+        match={baseMatch({
+          status: 'in_progress',
+          score: { homeScore: 1, awayScore: 1 },
+          periodScores: [
+            { period: 'full_time', homeScore: 1, awayScore: 1 },
+            { period: 'penalties', homeScore: 2, awayScore: 1 },
+          ],
+        })}
+      />,
+    )
+    expect(screen.getByText(/Penales/)).toBeInTheDocument()
+  })
 })

@@ -209,6 +209,19 @@ Barrido tras terminar el Match Center, para no dejar huecos:
 - **Verificación**: backend `nest build` OK + `jest` 100 tests OK; frontend `tsc`/`vite build` OK +
   `vitest` 32/32 (se corrigió además un test flaky preexistente en `PlayerProfilePage`).
 
+## Reejecución con plan riguroso (numeración del usuario, 2026-09-22)
+- **FASE 0 (audit específico) — COMPLETADA**: mapa tab→endpoint de `MatchDetailPage` (12 tabs: center/
+  tactical/advanced/video = consumo; teams/officials/result/events/stats/players/history = CRUD).
+  Hallazgo clave: `match_advanced_metrics` (mig. 015) **existe pero no tiene escritor** (solo lectura);
+  **no** se crea POST (sería API solo para llenar UI). Componentes reutilizables inventariados.
+- **FASE 1 (core) — COMPLETADA**: la estructura visual ya estaba (cabecera pro + tab Centro). Esta
+  pasada agrega **estados LIVE finos derivados de datos reales**: la cabecera muestra "Prórroga" o
+  "Penales" cuando `periodScores` tiene esos marcadores (Entretiempo NO es derivable: no hay marcador/
+  evento de límite de tiempo). Reutiliza `MatchScoreboardHeader` (= MatchHeader). Tests nuevos en
+  `MatchScoreboardHeader.test.tsx`. Verificado: tsc/build/vitest 34.
+- Hallazgo (no Match Center): `PlayerProfilePage.test.tsx` es flaky bajo carga por mock de `fetch`
+  dependiente del orden; pasa 3/3 aislado. Registrado para arreglo futuro (mockear por URL).
+
 ## Bitácora de avance
 - 2026-09-21 — FASE 0 completada. Auditoría registrada.
 - 2026-09-21 — Decisión de superficie tomada (MatchDetailPage = Match Center).
