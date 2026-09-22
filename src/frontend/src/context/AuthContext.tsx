@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { api, ApiError } from '../services/api'
+import { api, ApiError, setUnauthorizedHandler } from '../services/api'
 
 export type User = {
   id: number
@@ -40,6 +40,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(setUser)
       .catch(() => setUser(null))
       .finally(() => setLoading(false))
+  }, [])
+
+  // Sesión vencida en cualquier request: se limpia el usuario y ProtectedRoute manda al login,
+  // en vez de dejar la app "logueada" mostrando errores sueltos en cada pantalla.
+  useEffect(() => {
+    setUnauthorizedHandler(() => setUser(null))
+    return () => setUnauthorizedHandler(null)
   }, [])
 
   const login = async (username: string, password: string) => {

@@ -8,9 +8,22 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Manejo global de sesión vencida. Sin esto, cuando el token expira a mitad de sesión el usuario
+ * sigue "logueado" en el estado de React y cada pantalla muestra su propio error suelto. El
+ * AuthProvider registra acá un handler que limpia la sesión, y ProtectedRoute redirige al login.
+ */
+let onUnauthorized: (() => void) | null = null
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorized = handler
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   const isJson = res.headers.get('content-type')?.includes('application/json')
   const body = isJson ? await res.json() : undefined
+
+  if (res.status === 401) onUnauthorized?.()
 
   if (!res.ok) {
     const message = body?.message ?? `Error ${res.status}`
