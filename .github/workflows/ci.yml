@@ -1,0 +1,58 @@
+name: CI
+
+# Verifica que backend y frontend compilen y pasen sus pruebas en cada push y pull request.
+# Los dos proyectos se ejecutan en paralelo y de forma independiente: si uno falla, se ve cuál.
+# No requiere base de datos: los tests actuales usan mocks del pool de mssql.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Un push nuevo sobre la misma rama cancela la corrida anterior (evita colas inútiles).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (build + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: src/backend/package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+  frontend:
+    name: Frontend (typecheck + build + tests + lint)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+
+      - run: npm ci
+
+      # `npm run build` ya ejecuta `tsc -b` antes de vite build, así que cubre el typecheck.
+      - run: npm run build
+      - run: npm test
+      - run: npm run lint
