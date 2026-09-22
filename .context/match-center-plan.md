@@ -222,6 +222,29 @@ Barrido tras terminar el Match Center, para no dejar huecos:
 - Hallazgo (no Match Center): `PlayerProfilePage.test.tsx` es flaky bajo carga por mock de `fetch`
   dependiente del orden; pasa 3/3 aislado. Registrado para arreglo futuro (mockear por URL).
 
+## Reejecución F2→F9 (numeración del usuario) — COMPLETADA (2026-09-22)
+Auditoría contra la spec + relleno de huecos reales (sin inventar, reutilizando endpoints/componentes):
+- **F2** eventos/timeline: interrupción distingue VAR (🖥️/"Revisión VAR") y lesión (🚑/"Atención médica")
+  vía `interruptionType`; nuevo filtro "Otros" (offside/foul/interruption). No existen: gol anulado,
+  penal fallado en juego, penal concedido/anulado (no hay tipo ni endpoint) → documentado.
+- **F3** tiempo real: `useMatchLive` con polling 10s(vivo)/60s(fuera) + anti-render + conexión/última act.
+- **F4** stats: se agregaron los campos reales que faltaban (touches, throwIns, goalKicks, freeKicks
+  directos/indirectos) + fila DERIVADA "Precisión de pases (%)". No existen en `MatchTeamStats`:
+  centros/recuperaciones/intercepciones/despejes/bloqueos/duelos/ataques/ocasiones → documentado.
+- **F5** alineaciones: formación por equipo (`/formations`), nombre → link a `/jugadores/:id` (perfil
+  existente, sin sistema paralelo), marca "sustituido" derivada del timeline. No existen: capitán,
+  lesionado/suspendido en lineup → documentado.
+- **F6** contexto: H2H **inline** (victorias/empates/goles + últimos 5) reusando `reports/head-to-head`;
+  se mantiene link al reporte completo. Tabla + forma + próximos ya estaban.
+- **F7** analítica: momentum + xG acumulado + **evolución de tiros** + **xG por jugador**, todo derivado
+  del shot-map real. xG/xA/PPDA externos: `match_advanced_metrics` vacía y **sin escritor** → NO se creó
+  POST (sería API solo para UI). Documentado como hueco de datos.
+- **F8** post-partido: panel "Resumen del partido" (goleadores desde timeline, tarjetas, marcador por
+  período) que aparece al `finished`; misma vista LIVE→FINAL, sin página aparte.
+- **F9** extras: **compartir** (navigator.share + copiar link) nuevo; seguir + notificaciones nativas,
+  mapas/heatmaps, info adicional (clima/estadio/asistencia/TV) ya estaban. Streaming/highlights: sin fuente.
+- Verificado: `tsc -b` OK, `vite build` sin warnings, `vitest` 34/34. Handoff en `match-center-continuar-aqui.md`.
+
 ## Bitácora de avance
 - 2026-09-21 — FASE 0 completada. Auditoría registrada.
 - 2026-09-21 — Decisión de superficie tomada (MatchDetailPage = Match Center).

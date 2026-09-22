@@ -77,6 +77,33 @@ export default function MatchChartsSection({ matchId, homeTeamId, homeTeamName, 
     })
   }, [shots, homeTeamId])
 
+  // Evolución de tiros: conteo acumulado de intentos (tiros + goles) por equipo a lo largo del tiempo.
+  const shotsSeries = useMemo(() => {
+    if (!shots || shots.length === 0) return []
+    const sorted = shots.slice().sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0))
+    let home = 0
+    let away = 0
+    return sorted.map((s) => {
+      if (s.teamId === homeTeamId) home += 1
+      else away += 1
+      return { minute: s.minute ?? 0, home, away }
+    })
+  }, [shots, homeTeamId])
+
+  // xG por jugador (derivado del shot-map): sólo si hay tiros con xG cargado.
+  const xgByPlayer = useMemo(() => {
+    if (!shots) return []
+    const map = new Map<string, number>()
+    for (const s of shots) {
+      if (s.xg == null) continue
+      map.set(s.playerName, (map.get(s.playerName) ?? 0) + s.xg)
+    }
+    return Array.from(map.entries())
+      .map(([name, xg]) => ({ name, xg: Number(xg.toFixed(2)) }))
+      .sort((a, b) => b.xg - a.xg)
+      .slice(0, 8)
+  }, [shots])
+
   return (
     <section className="rounded-lg bg-white p-4 shadow sm:p-6">
       <div className="mb-3 flex items-center gap-2">
@@ -108,6 +135,21 @@ export default function MatchChartsSection({ matchId, homeTeamId, homeTeamName, 
             </ResponsiveContainer>
           </div>
 
+          <div>
+            <p className="mb-1 text-sm font-medium text-slate-700">Evolución de tiros (acumulado)</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={shotsSeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                <XAxis dataKey="minute" tick={{ fontSize: 11 }} unit="'" />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Legend />
+                <Line type="stepAfter" dataKey="home" name={homeTeamName} stroke={HOME_COLOR} dot={false} />
+                <Line type="stepAfter" dataKey="away" name={awayTeamName} stroke={AWAY_COLOR} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
           {xgSeries.length > 0 && (
             <div>
               <p className="mb-1 text-sm font-medium text-slate-700">xG acumulado</p>
@@ -122,6 +164,20 @@ export default function MatchChartsSection({ matchId, homeTeamId, homeTeamName, 
                   <Line type="monotone" dataKey="away" name={awayTeamName} stroke={AWAY_COLOR} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+          )}
+
+          {xgByPlayer.length > 0 && (
+            <div>
+              <p className="mb-2 text-sm font-medium text-slate-700">xG por jugador</p>
+              <ul className="space-y-1 text-sm">
+                {xgByPlayer.map((p) => (
+                  <li key={p.name} className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-slate-600">{p.name}</span>
+                    <span className="font-medium tabular-nums text-slate-800">{p.xg}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

@@ -9,9 +9,11 @@ import {
   CARD_TYPE_LABELS,
   EVENT_PERIOD_LABELS,
   GOAL_TYPE_LABELS,
+  INTERRUPTION_TYPE_LABELS,
   type Match,
   type MatchAdvancedMetric,
   type MatchCoachEntry,
+  type MatchFormation,
   type MatchLineupEntry,
   type MatchListResponse,
   type MatchTeamStats,
@@ -42,6 +44,11 @@ const COMPARE_FIELDS: { key: keyof MatchTeamStats; label: string }[] = [
   { key: 'offsidesCount', label: 'Fuera de juego' },
   { key: 'passes', label: 'Pases' },
   { key: 'passesCompleted', label: 'Pases completados' },
+  { key: 'touches', label: 'Toques' },
+  { key: 'throwIns', label: 'Laterales' },
+  { key: 'goalKicks', label: 'Saques de arco' },
+  { key: 'freeKicksDirect', label: 'Tiros libres directos' },
+  { key: 'freeKicksIndirect', label: 'Tiros libres indirectos' },
 ]
 
 const EVENT_FILTERS: { key: string; label: string; types: TimelineEvent['type'][] }[] = [
@@ -49,6 +56,7 @@ const EVENT_FILTERS: { key: string; label: string; types: TimelineEvent['type'][
   { key: 'goal', label: '⚽ Goles', types: ['goal'] },
   { key: 'card', label: '🟨 Tarjetas', types: ['card'] },
   { key: 'substitution', label: '🔄 Cambios', types: ['substitution'] },
+  { key: 'other', label: '⚑ Otros', types: ['offside', 'foul', 'interruption'] },
 ]
 
 function timePart(t: string | null): string {
@@ -80,19 +88,19 @@ export default function MatchCenterTab({ match, live, onError }: Props) {
         lastUpdatedAt={lastUpdatedAt}
         isLive={isLive}
         onRefresh={refresh}
-        extra={<FollowButton matchId={match.id} />}
+        extra={
+          <>
+            <ShareButton match={match} />
+            <FollowButton matchId={match.id} />
+          </>
+        }
       />
 
-      {isFinished && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          🏁 <strong>Resumen final.</strong> El partido finalizó — abajo quedan el desarrollo completo,
-          las estadísticas y las alineaciones.
-        </div>
-      )}
+      {isFinished && <PostMatchSummary match={match} timeline={timeline} />}
 
       <TimelineSection match={match} timeline={timeline} isLive={isLive} />
       <StatsSection match={match} teamStats={teamStats} />
-      <LineupsSection match={match} lineups={lineups} />
+      <LineupsSection match={match} lineups={lineups} timeline={timeline} />
       <MatchMapsSection matchId={match.id} onError={onError} />
       <MatchChartsSection
         matchId={match.id}
@@ -218,6 +226,40 @@ function FollowButton({ matchId }: { matchId: number }) {
   )
 }
 
+// -------------------------------------------------------------------------------- Compartir (FASE 9)
+function ShareButton({ match }: { match: Match }) {
+  const [done, setDone] = useState(false)
+  const share = async () => {
+    const url = typeof window !== 'undefined' ? window.location.href : ''
+    const title = `${match.homeTeamName ?? 'Local'} vs ${match.awayTeamName ?? 'Visitante'}`
+    const s = scoreOf(match)
+    const text = s ? `${title} · ${s.h}-${s.a}` : title
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title, text, url })
+        return
+      }
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(url)
+        setDone(true)
+        setTimeout(() => setDone(false), 1500)
+      }
+    } catch {
+      // el usuario canceló el diálogo o la API no está disponible; se ignora
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={share}
+      className="rounded-md border border-slate-300 px-2.5 py-1 font-medium text-slate-600 hover:bg-slate-50"
+      title="Compartir partido"
+    >
+      {done ? '✓ Copiado' : '↗ Compartir'}
+    </button>
+  )
+}
+
 function toastText(e: TimelineEvent, homeTeamId: number, homeTeamName: string, awayTeamName: string): string {
   const team = e.teamId === homeTeamId ? homeTeamName : e.teamId != null ? awayTeamName : ''
   const suffix = team ? ` · ${team}` : ''
@@ -329,6 +371,66 @@ function MatchExtraInfo({ match }: { match: Match }) {
       </dl>
       {match.comments && <p className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">{match.comments}</p>}
       <p className="mt-3 text-xs text-slate-400">Videos y repeticiones del partido: pestaña "🎬 Video".</p>
+    </section>
+  )
+}
+
+// ------------------------------------------------------------------- Resumen post-partido (FASE 8)
+function PostMatchSummary({ match, timeline }: { match: Match; timeline: TimelineEvent[] }) {
+  const s = scoreOf(match)
+  const goals = timeline.filter((e) => e.type === 'goal')
+  const homeScorers = goals.filter((g) => g.teamId === match.homeTeamId)
+  const awayScorers = goals.filter((g) => g.teamId === match.awayTeamId)
+  const yellow = timeline.filter((e) => e.type === 'card' && e.cardType === 'yellow').length
+  const red = timeline.filter(
+    (e) => e.type === 'card' && (e.cardType === 'red' || e.cardType === 'second_yellow'),
+  ).length
+  const ht = match.periodScores.find((p) => p.period === 'first_half')
+  const et = match.periodScores.find((p) => p.period === 'extra_time')
+  const pen = match.periodScores.find((p) => p.period === 'penalties')
+
+  const scorerLine = (list: TimelineEvent[]) =>
+    list.length === 0
+      ? '—'
+      : list
+          .map((g) => `${g.playerName ?? '—'} ${g.minute ?? '?'}′${g.ownGoal ? ' (e.c.)' : g.penalty ? ' (pen)' : ''}`)
+          .join(', ')
+
+  const periodLine = [
+    ht ? `1T ${ht.homeScore}-${ht.awayScore}` : '',
+    et ? `TE ${et.homeScore}-${et.awayScore}` : '',
+    pen ? `Penales ${pen.homeScore}-${pen.awayScore}` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  return (
+    <section className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 shadow-sm sm:p-6">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white">FINAL</span>
+        <h2 className="text-lg font-bold text-emerald-900">Resumen del partido</h2>
+      </div>
+      <p className="text-2xl font-bold text-emerald-900">
+        {match.homeTeamName ?? 'Local'} {s ? s.h : '–'} <span className="text-emerald-400">—</span> {s ? s.a : '–'}{' '}
+        {match.awayTeamName ?? 'Visitante'}
+      </p>
+      {periodLine && <p className="mt-0.5 text-xs text-emerald-700">{periodLine}</p>}
+      {goals.length > 0 && (
+        <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+          <p>
+            <span className="font-semibold">⚽ {match.homeTeamName ?? 'Local'}:</span> {scorerLine(homeScorers)}
+          </p>
+          <p>
+            <span className="font-semibold">⚽ {match.awayTeamName ?? 'Visitante'}:</span> {scorerLine(awayScorers)}
+          </p>
+        </div>
+      )}
+      <p className="mt-2 text-xs text-emerald-700">
+        🟨 {yellow} amarillas · 🟥 {red} rojas · {goals.length} goles
+      </p>
+      <p className="mt-2 text-xs text-emerald-600">
+        Debajo: desarrollo completo, estadísticas, alineaciones y gráficos.
+      </p>
     </section>
   )
 }
@@ -461,7 +563,7 @@ function eventIcon(e: TimelineEvent): string {
     case 'foul':
       return '✋'
     case 'interruption':
-      return '⏱'
+      return e.interruptionType === 'var_review' ? '🖥️' : e.interruptionType === 'medical' ? '🚑' : '⏱'
     default:
       return '•'
   }
@@ -485,7 +587,11 @@ function eventTitle(e: TimelineEvent): string {
     case 'foul':
       return `Falta${e.playerName ? `: ${e.playerName}` : ''}`
     case 'interruption':
-      return 'Interrupción'
+      return e.interruptionType === 'var_review'
+        ? 'Revisión VAR'
+        : e.interruptionType === 'medical'
+          ? 'Atención médica / lesión'
+          : INTERRUPTION_TYPE_LABELS[e.interruptionType ?? ''] ?? 'Interrupción'
     default:
       return e.type
   }
@@ -518,6 +624,15 @@ function StatsSection({ match, teamStats }: { match: Match; teamStats: MatchTeam
     b: (away?.[f.key] as number | null) ?? null,
   }))
 
+  // Métrica DERIVADA de datos reales: precisión de pases = completados / totales.
+  const accOf = (s?: MatchTeamStats) =>
+    s && s.passes ? Math.round(((s.passesCompleted ?? 0) / s.passes) * 100) : null
+  const accA = accOf(home)
+  const accB = accOf(away)
+  if (accA != null || accB != null) {
+    rows.push({ key: 'passAccuracy', label: 'Precisión de pases (%)', a: accA, b: accB })
+  }
+
   return (
     <section className="rounded-lg bg-white p-4 shadow sm:p-6">
       <h2 className="mb-3 text-lg font-bold">📊 Estadísticas</h2>
@@ -532,12 +647,24 @@ function StatsSection({ match, teamStats }: { match: Match; teamStats: MatchTeam
   )
 }
 
-// ------------------------------------------------------------- Alineaciones + jugadores (FASE 5 / 6)
-function LineupsSection({ match, lineups }: { match: Match; lineups: MatchLineupEntry[] }) {
+// ------------------------------------------------------------- Alineaciones + jugadores (FASE 5)
+function LineupsSection({ match, lineups, timeline }: { match: Match; lineups: MatchLineupEntry[]; timeline: TimelineEvent[] }) {
+  const navigate = useNavigate()
   const [coaches, setCoaches] = useState<MatchCoachEntry[]>([])
+  const [formations, setFormations] = useState<MatchFormation[]>([])
+
   useEffect(() => {
     api.get<MatchCoachEntry[]>(`/matches/${match.id}/coaches`).then(setCoaches).catch(() => setCoaches([]))
+    // Formación por equipo (reusa el endpoint existente; no crea datos).
+    api.get<MatchFormation[]>(`/matches/${match.id}/formations`).then(setFormations).catch(() => setFormations([]))
   }, [match.id])
+
+  // Jugadores que ya fueron sustituidos (derivado del timeline real, no inventado).
+  const subbedOff = useMemo(() => {
+    const set = new Set<number>()
+    for (const e of timeline) if (e.type === 'substitution' && e.playerOutId != null) set.add(e.playerOutId)
+    return set
+  }, [timeline])
 
   if (lineups.length === 0) {
     return (
@@ -548,19 +675,27 @@ function LineupsSection({ match, lineups }: { match: Match; lineups: MatchLineup
     )
   }
 
+  const shapeOf = (teamId: number) => formations.find((f) => f.teamId === teamId)?.formationShape
+
   return (
     <section className="rounded-lg bg-white p-4 shadow sm:p-6">
       <h2 className="mb-4 text-lg font-bold">👥 Alineaciones</h2>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <TeamLineup
           title={match.homeTeamName ?? 'Local'}
+          formation={shapeOf(match.homeTeamId)}
           entries={lineups.filter((l) => l.teamId === match.homeTeamId)}
           coach={coaches.find((c) => c.teamId === match.homeTeamId)}
+          subbedOff={subbedOff}
+          onOpenPlayer={(id) => navigate(`/jugadores/${id}`)}
         />
         <TeamLineup
           title={match.awayTeamName ?? 'Visitante'}
+          formation={shapeOf(match.awayTeamId)}
           entries={lineups.filter((l) => l.teamId === match.awayTeamId)}
           coach={coaches.find((c) => c.teamId === match.awayTeamId)}
+          subbedOff={subbedOff}
+          onOpenPlayer={(id) => navigate(`/jugadores/${id}`)}
         />
       </div>
       <p className="mt-3 text-xs text-slate-400">Formación sobre la cancha: ver la pestaña "📊 Análisis".</p>
@@ -568,18 +703,37 @@ function LineupsSection({ match, lineups }: { match: Match; lineups: MatchLineup
   )
 }
 
-function TeamLineup({ title, entries, coach }: { title: string; entries: MatchLineupEntry[]; coach?: MatchCoachEntry }) {
+function TeamLineup({
+  title,
+  formation,
+  entries,
+  coach,
+  subbedOff,
+  onOpenPlayer,
+}: {
+  title: string
+  formation?: string
+  entries: MatchLineupEntry[]
+  coach?: MatchCoachEntry
+  subbedOff: Set<number>
+  onOpenPlayer: (playerId: number) => void
+}) {
   const starters = entries.filter((e) => e.isStarting).sort((a, b) => (a.shirtNumber ?? 99) - (b.shirtNumber ?? 99))
   const bench = entries.filter((e) => !e.isStarting).sort((a, b) => (a.shirtNumber ?? 99) - (b.shirtNumber ?? 99))
 
   return (
     <div>
-      <h3 className="mb-2 font-semibold text-slate-800">{title}</h3>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h3 className="font-semibold text-slate-800">{title}</h3>
+        {formation && (
+          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600">{formation}</span>
+        )}
+      </div>
       {coach && <p className="mb-2 text-xs text-slate-500">DT: {coach.coachFullName}</p>}
       <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Titulares</p>
       <ul className="mb-3 divide-y divide-slate-100">
         {starters.map((p) => (
-          <PlayerRow key={p.id} p={p} />
+          <PlayerRow key={p.id} p={p} subbed={subbedOff.has(p.playerId)} onOpen={onOpenPlayer} />
         ))}
         {starters.length === 0 && <li className="py-1.5 text-sm text-slate-400">Sin titulares cargados.</li>}
       </ul>
@@ -588,7 +742,7 @@ function TeamLineup({ title, entries, coach }: { title: string; entries: MatchLi
           <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Suplentes</p>
           <ul className="divide-y divide-slate-100">
             {bench.map((p) => (
-              <PlayerRow key={p.id} p={p} />
+              <PlayerRow key={p.id} p={p} subbed={subbedOff.has(p.playerId)} onOpen={onOpenPlayer} />
             ))}
           </ul>
         </>
@@ -597,7 +751,7 @@ function TeamLineup({ title, entries, coach }: { title: string; entries: MatchLi
   )
 }
 
-function PlayerRow({ p }: { p: MatchLineupEntry }) {
+function PlayerRow({ p, subbed, onOpen }: { p: MatchLineupEntry; subbed: boolean; onOpen: (playerId: number) => void }) {
   const badges: string[] = []
   for (let i = 0; i < p.goals; i++) badges.push('⚽')
   for (let i = 0; i < p.yellowCards; i++) badges.push('🟨')
@@ -605,10 +759,16 @@ function PlayerRow({ p }: { p: MatchLineupEntry }) {
   return (
     <li className="flex items-center gap-2 py-1.5 text-sm">
       <span className="w-6 shrink-0 text-right font-bold tabular-nums text-slate-400">{p.shirtNumber ?? '–'}</span>
-      <span className="min-w-0 flex-1 truncate">
+      <button
+        type="button"
+        onClick={() => onOpen(p.playerId)}
+        className="min-w-0 flex-1 truncate text-left text-blue-600 hover:underline"
+        title="Ver perfil del jugador"
+      >
         {p.playerFullName}
         {p.position ? <span className="text-slate-400"> · {p.position}</span> : ''}
-      </span>
+      </button>
+      {subbed && <span className="shrink-0 text-xs text-slate-400" title="Sustituido">↩</span>}
       {p.minutesPlayed != null && <span className="shrink-0 text-xs text-slate-400">{p.minutesPlayed}′</span>}
       {badges.length > 0 && <span className="shrink-0">{badges.join('')}</span>}
     </li>
@@ -784,23 +944,95 @@ function ContextSection({ match, onError }: { match: Match; onError: (m: string)
         <TeamContext teamId={match.awayTeamId} teamName={match.awayTeamName ?? 'Visitante'} onError={onError} />
       </div>
 
-      <div className="rounded-lg bg-white p-4 shadow sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-bold">🤝 Enfrentamientos directos</h2>
-          <button
-            type="button"
-            onClick={() => navigate('/reportes/enfrentamientos')}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
-          >
-            Ver historial (H2H)
-          </button>
-        </div>
-        <p className="mt-1 text-sm text-slate-500">
-          El historial completo entre {match.homeTeamName ?? 'Local'} y {match.awayTeamName ?? 'Visitante'} está en el
-          reporte de enfrentamientos.
-        </p>
-      </div>
+      <HeadToHeadPanel match={match} onOpenReport={() => navigate('/reportes/enfrentamientos')} />
     </section>
+  )
+}
+
+// H2H inline — reutiliza el endpoint existente reports/head-to-head (teamA = local, teamB = visitante).
+type H2HMatch = {
+  id: number
+  matchDate: string
+  homeTeamId: number
+  homeTeamName: string
+  awayTeamName: string
+  homeScore: number | null
+  awayScore: number | null
+  competitionName: string
+}
+type H2HResponse = {
+  matches: H2HMatch[]
+  winsA: number
+  winsB: number
+  draws: number
+  goalsA: number
+  goalsB: number
+  matchesMissingScore: number
+}
+
+function HeadToHeadPanel({ match, onOpenReport }: { match: Match; onOpenReport: () => void }) {
+  const [h2h, setH2h] = useState<H2HResponse | null>(null)
+  useEffect(() => {
+    api
+      .get<H2HResponse>(`/reports/head-to-head?teamAId=${match.homeTeamId}&teamBId=${match.awayTeamId}`)
+      .then(setH2h)
+      .catch(() => setH2h(null))
+  }, [match.homeTeamId, match.awayTeamId])
+
+  const home = match.homeTeamName ?? 'Local'
+  const away = match.awayTeamName ?? 'Visitante'
+
+  return (
+    <div className="rounded-lg bg-white p-4 shadow sm:p-6">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-bold">🤝 Enfrentamientos directos</h2>
+        <button
+          type="button"
+          onClick={onOpenReport}
+          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+        >
+          Ver historial completo
+        </button>
+      </div>
+
+      {h2h == null ? (
+        <p className="py-2 text-center text-sm text-slate-400">Historial no disponible.</p>
+      ) : h2h.matches.length === 0 ? (
+        <p className="py-2 text-center text-sm text-slate-500">Sin enfrentamientos previos registrados.</p>
+      ) : (
+        <>
+          <div className="mb-3 grid grid-cols-3 overflow-hidden rounded-lg border border-slate-200 text-center text-sm">
+            <div className="bg-blue-50 px-2 py-2">
+              <p className="text-xs text-slate-500">{home}</p>
+              <p className="text-lg font-bold text-blue-700">{h2h.winsA}</p>
+            </div>
+            <div className="px-2 py-2">
+              <p className="text-xs text-slate-500">Empates</p>
+              <p className="text-lg font-bold text-slate-600">{h2h.draws}</p>
+            </div>
+            <div className="bg-red-50 px-2 py-2">
+              <p className="text-xs text-slate-500">{away}</p>
+              <p className="text-lg font-bold text-red-700">{h2h.winsB}</p>
+            </div>
+          </div>
+          <p className="mb-3 text-center text-xs text-slate-500">
+            Goles totales: {home} {h2h.goalsA} — {h2h.goalsB} {away}
+          </p>
+          <ul className="space-y-1 text-sm">
+            {h2h.matches.slice(0, 5).map((m) => (
+              <li key={m.id} className="flex items-center justify-between gap-2 text-slate-600">
+                <span className="min-w-0 truncate">
+                  {m.matchDate.slice(0, 10)} · {m.homeTeamName} vs {m.awayTeamName}
+                </span>
+                <span className="shrink-0 font-medium tabular-nums">
+                  {m.homeScore != null && m.awayScore != null ? `${m.homeScore}-${m.awayScore}` : '—'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
   )
 }
 

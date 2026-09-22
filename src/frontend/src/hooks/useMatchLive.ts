@@ -92,8 +92,13 @@ export function useMatchLive(matchId: number): UseMatchLive {
   useEffect(() => {
     if (!Number.isFinite(matchId)) return
     load()
+    // Dos niveles: en vivo refresca cada 10s; fuera de vivo, cada ~60s (1 de cada 6 ticks) para
+    // captar la transición programado→en vivo y ajustes post-partido, sin requests innecesarios.
+    let tick = 0
     const timer = setInterval(() => {
+      tick += 1
       if (statusRef.current === 'in_progress') load()
+      else if (tick % 6 === 0) load()
     }, LIVE_POLL_MS)
     return () => clearInterval(timer)
   }, [load, matchId])
