@@ -90,6 +90,8 @@ describe('PlayerProfilePage', () => {
     await waitFor(() => {
       expect(screen.getByText('Lesionado')).toBeInTheDocument()
     })
-    expect(screen.getByText(/Desgarro/)).toBeInTheDocument()
+    // "Desgarro" puede aparecer tanto en la lesión activa como en el historial: aceptamos 1 o más
+    // (usar getByText, que exige exactamente uno, hacía este test flaky).
+    expect(screen.getAllByText(/Desgarro/).length).toBeGreaterThan(0)
   })
 })

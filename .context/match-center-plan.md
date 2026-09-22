@@ -180,6 +180,22 @@ El DTO valida contra `constants.ts` **y** la categoría `match_status` de Parame
 No pasar a la siguiente fase si quedan: errores de compilación/runtime, datos incorrectos,
 funcionalidades rotas, peticiones duplicadas, componentes duplicados, o estados LIVE inconsistentes.
 
+## Cierre de seguridad (2026-09-21)
+Barrido tras terminar el Match Center, para no dejar huecos:
+- **Auth**: todos los controllers del backend usan `JwtAuthGuard`, salvo dos por diseño:
+  `health` (público) y `dev` (pantalla de login, pre-auth). El nuevo módulo `informal-tournaments`
+  y todo lo usado por el Match Center están autenticados.
+- **Backdoor dev** (`/dev/test-credentials`): sigue triple-gateado (404 en producción, `DevModule`
+  no se monta en prod, sólo responde a accesos loopback salvo `DEV_CREDENTIALS_REMOTE=true`).
+  Cubierto por `dev.controller.spec.ts`.
+- **`/health` endurecido**: ya no filtra el nombre de la base ni la hora del servidor (sólo
+  `{ status, api, database: { connected } }`) y no lanza 500 si la base está caída.
+  Nuevo `health.controller.spec.ts` fija ese contrato.
+- **SQL**: el código nuevo usa parámetros (`request.input`) y whitelists para `ORDER BY` (sin
+  inyección). Sin secretos versionados (`.env` en `.gitignore`). Frontend detrás de `ProtectedRoute`.
+- **Verificación**: backend `nest build` OK + `jest` 100 tests OK; frontend `tsc`/`vite build` OK +
+  `vitest` 32/32 (se corrigió además un test flaky preexistente en `PlayerProfilePage`).
+
 ## Bitácora de avance
 - 2026-09-21 — FASE 0 completada. Auditoría registrada.
 - 2026-09-21 — Decisión de superficie tomada (MatchDetailPage = Match Center).
