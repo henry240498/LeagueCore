@@ -93,13 +93,15 @@ export default function MatchChartsSection({ matchId, homeTeamId, homeTeamName, 
   // xG por jugador (derivado del shot-map): sólo si hay tiros con xG cargado.
   const xgByPlayer = useMemo(() => {
     if (!shots) return []
-    const map = new Map<string, number>()
+    // Se agrupa por playerId (no por nombre): dos jugadores homónimos son personas distintas.
+    const map = new Map<number, { name: string; xg: number }>()
     for (const s of shots) {
       if (s.xg == null) continue
-      map.set(s.playerName, (map.get(s.playerName) ?? 0) + s.xg)
+      const prev = map.get(s.playerId)
+      map.set(s.playerId, { name: s.playerName, xg: (prev?.xg ?? 0) + s.xg })
     }
     return Array.from(map.entries())
-      .map(([name, xg]) => ({ name, xg: Number(xg.toFixed(2)) }))
+      .map(([playerId, v]) => ({ playerId, name: v.name, xg: Number(v.xg.toFixed(2)) }))
       .sort((a, b) => b.xg - a.xg)
       .slice(0, 8)
   }, [shots])
@@ -172,7 +174,7 @@ export default function MatchChartsSection({ matchId, homeTeamId, homeTeamName, 
               <p className="mb-2 text-sm font-medium text-slate-700">xG por jugador</p>
               <ul className="space-y-1 text-sm">
                 {xgByPlayer.map((p) => (
-                  <li key={p.name} className="flex items-center justify-between gap-2">
+                  <li key={p.playerId} className="flex items-center justify-between gap-2">
                     <span className="min-w-0 truncate text-slate-600">{p.name}</span>
                     <span className="font-medium tabular-nums text-slate-800">{p.xg}</span>
                   </li>

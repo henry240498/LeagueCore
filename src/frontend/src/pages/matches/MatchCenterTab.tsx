@@ -289,6 +289,9 @@ function LiveEventToasts({
   const [toasts, setToasts] = useState<{ key: string; text: string }[]>([])
   // null hasta el primer render: así no se disparan avisos por los eventos ya existentes al abrir.
   const seenRef = useRef<Set<string> | null>(null)
+  // Timers de auto-cierre: se limpian al desmontar para no tocar estado de un componente muerto.
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  useEffect(() => () => timersRef.current.forEach(clearTimeout), [])
 
   useEffect(() => {
     const ids = new Set(timeline.map((e) => `${e.type}-${e.id}`))
@@ -310,7 +313,9 @@ function LiveEventToasts({
     }))
     setToasts((prev) => [...prev, ...added])
     for (const t of added) {
-      setTimeout(() => setToasts((prev) => prev.filter((x) => x.key !== t.key)), 6000)
+      timersRef.current.push(
+        setTimeout(() => setToasts((prev) => prev.filter((x) => x.key !== t.key)), 6000),
+      )
     }
 
     // Notificación nativa del navegador cuando la pestaña NO está enfocada (evita duplicar el toast
@@ -385,9 +390,10 @@ function PostMatchSummary({ match, timeline }: { match: Match; timeline: Timelin
   const red = timeline.filter(
     (e) => e.type === 'card' && (e.cardType === 'red' || e.cardType === 'second_yellow'),
   ).length
-  const ht = match.periodScores.find((p) => p.period === 'first_half')
-  const et = match.periodScores.find((p) => p.period === 'extra_time')
-  const pen = match.periodScores.find((p) => p.period === 'penalties')
+  const periods = match.periodScores ?? []
+  const ht = periods.find((p) => p.period === 'first_half')
+  const et = periods.find((p) => p.period === 'extra_time')
+  const pen = periods.find((p) => p.period === 'penalties')
 
   const scorerLine = (list: TimelineEvent[]) =>
     list.length === 0

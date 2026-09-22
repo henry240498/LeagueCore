@@ -93,12 +93,18 @@ export function useMatchLive(matchId: number): UseMatchLive {
     if (!Number.isFinite(matchId)) return
     load()
     // Dos niveles: en vivo refresca cada 10s; fuera de vivo, cada ~60s (1 de cada 6 ticks) para
-    // captar la transición programado→en vivo y ajustes post-partido, sin requests innecesarios.
+    // captar la transición programado→en vivo. Un partido finalizado o cancelado ya no cambia:
+    // se deja de pedir por completo para no generar requests inútiles indefinidamente.
     let tick = 0
     const timer = setInterval(() => {
+      const status = statusRef.current
+      if (status === 'in_progress') {
+        load()
+        return
+      }
+      if (status === 'finished' || status === 'cancelled') return
       tick += 1
-      if (statusRef.current === 'in_progress') load()
-      else if (tick % 6 === 0) load()
+      if (tick % 6 === 0) load()
     }, LIVE_POLL_MS)
     return () => clearInterval(timer)
   }, [load, matchId])
