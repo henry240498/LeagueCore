@@ -141,21 +141,34 @@ El DTO valida contra `constants.ts` **y** la categoría `match_status` de Parame
     partido de la llave → sólo se muestra `leg`, no se inventa el agregado.
   - Estados HT/tiempo-extra/penales/abandonado NO existen como `status` propio (sólo los 6 de
     `MATCH_STATUSES`); se representan con el estado real + sub-marcadores por período.
-- [ ] **FASE 2** — Eventos + timeline (períodos, filtros, destacar goles, animación) (P1).
-- [ ] **FASE 3** — Tiempo real (hook de polling reutilizable, indicador conexión/última act./reconexión) (P1).
-- [ ] **FASE 4** — Estadísticas principales (comparativa L/V) (P2).
-- [ ] **FASE 5** — Alineaciones + formaciones sobre cancha (P2).
-- [ ] **FASE 6** — Estadísticas de jugadores (panel al seleccionar) (P2).
-- [ ] **FASE 7** — Contexto de competición (tabla, forma, H2H, próximos) (P3).
-- [ ] **FASE 8** — Análisis avanzado (xG/xA/PPDA + gráficos), solo si hay datos (P4).
-- [ ] **FASE 9** — Shot map + heatmaps (P4).
-- [ ] **FASE 10** — Comparación de jugadores (P4).
-- [ ] **FASE 11** — Resumen post-partido (LIVE → FINAL en la misma vista) (P5).
-- [ ] **FASE 12** — Seguimiento y notificaciones (solo si ya existe infraestructura) (P5).
-- [ ] **FASE 13** — Multimedia y contenido adicional (P5).
-- [ ] **FASE 14** — Pasada UX/UI final (P6).
-- [ ] **FASE 15** — Rendimiento y optimización (P6).
-- [ ] **FASE 16** — Validación completa de estados/responsive/errores (P7).
+- [x] **FASE 2** — Eventos + timeline. Nueva pestaña `🎯 Centro` (`MatchCenterTab`): timeline horizontal
+  (reusa `MatchTimeline`) + lista vertical agrupada por período, filtros por tipo y equipo, goles
+  destacados, resalte del último evento en vivo, botón "ir al último".
+- [x] **FASE 3** — Tiempo real. Hook reutilizable `hooks/useMatchLive.ts` (polling sólo si `in_progress`,
+  estado de conexión, última actualización, refresh, minuto en vivo derivado del timeline). Alimenta
+  la cabecera (minuto) y el Match Center; barra de estado de conexión en el Centro.
+- [x] **FASE 4** — Estadísticas principales. Comparativa L/V con `StatBars` desde `team-stats` (sin refetch,
+  usa los datos del hook). Estado vacío si no hay stats.
+- [x] **FASE 5** — Alineaciones. Titulares/suplentes por equipo, dorsal/posición/minutos, DT (reusa
+  `/coaches`). Formación sobre cancha: se remite a la pestaña Análisis (ya existente) para no duplicar.
+- [x] **FASE 6** — Jugadores. Badges por jugador (goles/amarillas/rojas/minutos) desde el lineup.
+- [x] **FASE 7** — Contexto. Tabla (`/seasons/:id/standings`, resalta ambos equipos), forma reciente
+  (últimos 5 vía `/matches?teamId&status=finished`), próximos (`?status=scheduled`), y link al reporte
+  H2H existente (`/reportes/enfrentamientos`).
+- [~] **FASE 8** — Avanzado. Sección `advanced-metrics` con estado vacío honesto (no hay datos cargados);
+  gráficos xG/momentum pendientes hasta tener datos. Marcado como "derivadas/externas".
+- [x] **FASE 9** — Shot map + heatmaps. Reusa `MatchMapsSection` (`/insights/matches/:id/maps`).
+- [x] **FASE 10** — Comparación de jugadores. Selector A/B + `StatBars` con stats reales del partido.
+- [x] **FASE 11** — Resumen post-partido. Banner "Resumen final" cuando `finished`; la misma vista
+  Centro evoluciona LIVE → FINAL (no hay página aparte).
+- [N/A] **FASE 12** — Seguimiento/notificaciones. La auditoría no encontró módulo de notificaciones/
+  favoritos → no se crea uno paralelo. Pendiente si se agrega esa infraestructura.
+- [~] **FASE 13** — Multimedia. Ya existe `MatchVideoTab` (pestaña Video); no se duplica. Clima/asistencia
+  ya se muestran en la cabecera.
+- [~] **FASE 14** — UX/UI. Aplicada inline (responsive, estados vacío/carga, feedback de conexión,
+  resaltes, filtros). Falta una pasada dedicada de pulido.
+- [ ] **FASE 15** — Rendimiento y optimización (P6). PENDIENTE (fuera del alcance pedido).
+- [ ] **FASE 16** — Validación completa (P7). PENDIENTE (fuera del alcance pedido).
 
 ## Regla de avance
 No pasar a la siguiente fase si quedan: errores de compilación/runtime, datos incorrectos,
@@ -165,5 +178,10 @@ funcionalidades rotas, peticiones duplicadas, componentes duplicados, o estados 
 - 2026-09-21 — FASE 0 completada. Auditoría registrada.
 - 2026-09-21 — Decisión de superficie tomada (MatchDetailPage = Match Center).
 - 2026-09-21 — FASE 1 completada (cabecera profesional integrada, sin duplicar componentes).
-  Pendiente de verificación: `npm run build` en frontend (no hay node_modules en el entorno de trabajo).
-  Próximo: FASE 2 (eventos + timeline).
+- 2026-09-21 — FASES 2–11 implementadas en `MatchCenterTab` (pestaña "🎯 Centro", por defecto) + hook
+  `useMatchLive` (FASE 3). FASE 8 y 13 parciales (sin datos / ya existente), FASE 12 N/A (sin infra),
+  FASE 14 aplicada inline. **Pendientes: FASE 15 (rendimiento) y FASE 16 (validación).**
+  Archivos: `hooks/useMatchLive.ts` (nuevo), `pages/matches/MatchCenterTab.tsx` (nuevo),
+  `pages/matches/MatchDetailPage.tsx` (modif.), `components/pitch/MatchScoreboardHeader.tsx` (modif. FASE 1).
+  Verificación (2026-09-21): `tsc -b` OK, `vite build` OK, `vitest` 27/27 OK, `oxlint` sin errores
+  (sólo warnings de estilo preexistentes del repo). Build listo.

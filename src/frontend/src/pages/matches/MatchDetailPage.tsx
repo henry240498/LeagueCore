@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../context/AuthContext'
 import { api } from '../../services/api'
 import MatchScoreboardHeader from '../../components/pitch/MatchScoreboardHeader'
+import { useMatchLive } from '../../hooks/useMatchLive'
+import MatchCenterTab from './MatchCenterTab'
 import MatchTacticsTab from './MatchTacticsTab'
 import MatchVideoTab from './MatchVideoTab'
 import TacticalViewTab from './TacticalViewTab'
@@ -36,6 +38,7 @@ import type {
 } from '../../types/match'
 
 type Tab =
+  | 'center'
   | 'tactical'
   | 'advanced'
   | 'video'
@@ -53,6 +56,7 @@ type Tab =
 // una experiencia de análisis", no una tabla). El resto sigue siendo administración/CRUD tradicional,
 // tal como pidió explícitamente que se conservara.
 const TABS: { key: Tab; label: string }[] = [
+  { key: 'center', label: '🎯 Centro' },
   { key: 'tactical', label: '📊 Análisis' },
   { key: 'advanced', label: '📐 Táctica avanzada' },
   { key: 'video', label: '🎬 Video' },
@@ -70,21 +74,14 @@ export default function MatchDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const matchId = Number(id)
-  const [match, setMatch] = useState<Match | null>(null)
-  const [officials, setOfficials] = useState<MatchOfficialEntry[]>([])
-  const [tab, setTab] = useState<Tab>('tactical')
+  // FASE 3 — tiempo real centralizado: alimenta la cabecera (árbitro/VAR, minuto en vivo) y el
+  // Match Center, reutilizando el polling contra los endpoints existentes.
+  const live = useMatchLive(matchId)
+  const match = live.match
+  const officials = live.officials
+  const load = live.refresh
+  const [tab, setTab] = useState<Tab>('center')
   const [error, setError] = useState('')
-
-  const load = () => {
-    api
-      .get<Match>(`/matches/${id}`)
-      .then(setMatch)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Error al cargar el partido'))
-    // Oficiales para la cabecera (árbitro/VAR). Endpoint existente; si falla, la cabecera los omite.
-    api.get<MatchOfficialEntry[]>(`/matches/${id}/officials`).then(setOfficials).catch(() => setOfficials([]))
-  }
-
-  useEffect(load, [id])
 
   const handleDelete = async () => {
     if (!match) return
@@ -103,7 +100,8 @@ export default function MatchDetailPage() {
     }
   }
 
-  if (error && !match) return <p className="p-8 text-center text-red-600">{error}</p>
+  if (!match && (error || live.error))
+    return <p className="p-8 text-center text-red-600">{error || live.error}</p>
   if (!match) return <p className="p-8 text-center text-slate-500">Cargando...</p>
 
   return (
@@ -112,6 +110,7 @@ export default function MatchDetailPage() {
         <MatchScoreboardHeader
           match={match}
           officials={officials}
+          liveMinute={live.liveMinute}
           context={
             <span>
               <button
@@ -193,6 +192,7 @@ export default function MatchDetailPage() {
         ))}
       </div>
 
+      {tab === 'center' && <MatchCenterTab match={match} live={live} onError={setError} />}
       {tab === 'info' && <InfoTab match={match} />}
       {tab === 'teams' && <TeamsCoachesTab match={match} onError={setError} />}
       {tab === 'officials' && <OfficialsTab matchId={matchId} onError={setError} />}
