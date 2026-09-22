@@ -168,8 +168,10 @@ El DTO valida contra `constants.ts` **y** la categoría `match_status` de Parame
   sin duplicar nada: **"Seguir/Dejar de seguir"** por-visitante en `localStorage` (`FollowButton`), y
   **avisos en vivo** (`LiveEventToasts`) que muestran toasts al llegar goles/tarjetas/cambios nuevos
   mientras el partido está abierto (detecta ids nuevos del timeline entre polls; no floodea al abrir).
-  Nota: el push en 2º plano (con la pestaña cerrada) no se incluye — requiere infraestructura de
-  servidor/Service Worker que hoy no existe.
+  Además, **notificaciones nativas del navegador** (`Notification` API): al seguir se pide permiso, y
+  los eventos importantes disparan una notificación del SO cuando la pestaña NO está enfocada.
+  Nota: el push con la pestaña totalmente cerrada no se incluye — requiere Service Worker + servidor
+  de push (VAPID), infraestructura que hoy no existe.
 - [x] **FASE 13** — Multimedia / info adicional. `MatchExtraInfo`: estadio, asistencia, clima,
   temperatura, viento, humedad, estado del campo, transmisión y comentarios — todos datos reales del
   partido. Video/repeticiones siguen en la pestaña `🎬 Video` (no se duplica). Streaming/highlights
@@ -177,9 +179,11 @@ El DTO valida contra `constants.ts` **y** la categoría `match_status` de Parame
 - [~] **FASE 14** — UX/UI. Aplicada inline (responsive, estados vacío/carga, feedback de conexión,
   resaltes, filtros). Falta una pasada dedicada de pulido.
 - [x] **FASE 15** — Rendimiento. (a) `useMatchLive` sólo re-renderiza cuando los datos cambian entre
-  polls (comparación por serialización) → un poll idéntico no dispara render. (b) Code-splitting:
-  las pestañas pesadas (`MatchCenterTab`, `TacticalViewTab`, `MatchTacticsTab`, `MatchVideoTab`) se
-  cargan con `React.lazy` + `<Suspense>` (chunks separados, menor bundle inicial).
+  polls (comparación por serialización) → un poll idéntico no dispara render. (b) Code-splitting de
+  pestañas pesadas del partido (`MatchCenterTab`, `MatchTacticsTab`, `MatchVideoTab`) con `React.lazy`.
+  (c) **Code-splitting a nivel de rutas** en `App.tsx`: todas las páginas con `React.lazy` + `<Suspense>`.
+  Resultado: bundle inicial **1.193 kB → 261 kB** (gzip 298→82 kB) y **desaparece el warning** de chunk
+  > 500 kB; cada página es un chunk propio.
 - [x] **FASE 16** — Validación. `MatchScoreboardHeader.test.tsx` cubre estados (programado/en vivo/
   finalizado+penales/suspendido) y garantiza que no aparezca `undefined`/`NaN`/`null`. Suite completa
   verde. Verificación de estados restantes (aplazado/cancelado/abandonado) cubierta por el mapeo de

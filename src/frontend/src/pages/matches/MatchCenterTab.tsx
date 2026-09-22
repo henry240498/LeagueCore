@@ -188,7 +188,17 @@ function FollowButton({ matchId }: { matchId: number }) {
       if (set.has(matchId)) set.delete(matchId)
       else set.add(matchId)
       localStorage.setItem(FOLLOW_KEY, JSON.stringify([...set]))
-      setFollowed(set.has(matchId))
+      const nowFollowing = set.has(matchId)
+      setFollowed(nowFollowing)
+      // Al empezar a seguir, pedimos permiso de notificaciones del navegador (avisos aunque la
+      // pestaña no esté enfocada). No hay push en 2º plano con la pestaña cerrada (sin servidor).
+      if (nowFollowing && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        try {
+          void Notification.requestPermission()
+        } catch {
+          // El navegador puede bloquearlo; se ignora.
+        }
+      }
     } catch {
       // localStorage no disponible (modo privado); se ignora.
     }
@@ -259,6 +269,23 @@ function LiveEventToasts({
     setToasts((prev) => [...prev, ...added])
     for (const t of added) {
       setTimeout(() => setToasts((prev) => prev.filter((x) => x.key !== t.key)), 6000)
+    }
+
+    // Notificación nativa del navegador cuando la pestaña NO está enfocada (evita duplicar el toast
+    // cuando el usuario ya está mirando). Requiere permiso concedido; si no, sólo quedan los toasts.
+    if (
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted' &&
+      typeof document !== 'undefined' &&
+      document.hidden
+    ) {
+      for (const t of added) {
+        try {
+          new Notification('LeagueCore', { body: t.text })
+        } catch {
+          // Algunos navegadores exigen Service Worker para notificar; se ignora.
+        }
+      }
     }
   }, [timeline, homeTeamId, homeTeamName, awayTeamName])
 
