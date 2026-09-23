@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts'
 import StatRadar from '../../components/stats/StatRadar'
+import PlayerCareerSection from './PlayerCareerSection'
 import { ApiError } from '../../context/AuthContext'
 import { playerProfileService } from '../../services/playerProfile'
 import {
@@ -332,6 +333,12 @@ export default function PlayerProfilePage() {
             <InjuryList playerId={playerId} onChanged={load} />
           </section>
         </div>
+      </div>
+
+      {/* Planilla: todo lo que el jugador hizo (trayectoria, totales, por competición, partido a
+          partido). Va a lo ancho porque incluye tablas. */}
+      <div className="mt-6">
+        <PlayerCareerSection playerId={playerId} />
       </div>
     </div>
   )

@@ -35,6 +35,70 @@ const PROFILE = {
   injuriesCount: 0,
 }
 
+// Planilla (trayectoria + partido a partido) que consume PlayerCareerSection.
+const CAREER = {
+  teamHistory: [
+    {
+      id: 1,
+      teamId: 5,
+      teamName: 'Olimpia',
+      teamLogoUrl: null,
+      startDate: '2026-01-01',
+      endDate: null,
+      squadNumber: 9,
+      note: null,
+      current: true,
+    },
+  ],
+  totals: {
+    matches: 12,
+    starts: 10,
+    substituteAppearances: 2,
+    minutes: 900,
+    goals: 4,
+    ownGoals: 0,
+    assists: 3,
+    yellowCards: 2,
+    redCards: 0,
+  },
+  byCompetition: [
+    { competitionId: 1, competitionName: 'Primera División', matches: 12, minutes: 900, goals: 4, assists: 3, yellowCards: 2, redCards: 0 },
+  ],
+  positions: [{ position: 'Delantero', matches: 12 }],
+  statTotals: null,
+}
+
+const MATCH_LOG = {
+  items: [
+    {
+      matchId: 31,
+      matchDate: '2026-09-01',
+      status: 'finished',
+      competitionName: 'Primera División',
+      seasonLabel: 'Clausura 2026',
+      round: 'Fecha 5',
+      teamId: 5,
+      teamName: 'Olimpia',
+      isHome: true,
+      opponentName: 'Cerro Porteño',
+      homeScore: 2,
+      awayScore: 1,
+      isStarting: true,
+      position: 'Delantero',
+      shirtNumber: 9,
+      minutesPlayed: 90,
+      goals: 1,
+      ownGoals: 0,
+      assists: 0,
+      yellowCards: 0,
+      redCards: 0,
+    },
+  ],
+  total: 1,
+  page: 1,
+  pageSize: 20,
+}
+
 /**
  * Mock de fetch POR URL (no por orden de llamada).
  *
@@ -73,7 +137,7 @@ describe('PlayerProfilePage', () => {
   })
 
   it('muestra el expediente con disponibilidad y radar técnico', async () => {
-    mockFetchByUrl({ '/profile': PROFILE, '/injuries': [] })
+    mockFetchByUrl({ '/profile': PROFILE, '/injuries': [], '/career': CAREER, '/match-log': MATCH_LOG })
     renderProfile()
 
     await waitFor(() => {
@@ -81,6 +145,36 @@ describe('PlayerProfilePage', () => {
     })
     expect(screen.getByText('Disponible')).toBeInTheDocument()
     expect(screen.getByText('Vigente')).toBeInTheDocument()
+  })
+
+  it('muestra la planilla: trayectoria, totales y partido a partido', async () => {
+    mockFetchByUrl({ '/profile': PROFILE, '/injuries': [], '/career': CAREER, '/match-log': MATCH_LOG })
+    renderProfile()
+
+    // Se espera por el badge "Actual", que SÓLO aparece con la trayectoria ya cargada. Esperar por
+    // el encabezado no sirve: también se muestra durante la carga y el test seguía antes de tiempo.
+    await waitFor(
+      () => {
+        expect(screen.getByText('Actual')).toBeInTheDocument()
+      },
+      { timeout: 5000 },
+    )
+
+    expect(screen.getByText('📋 Planilla del jugador')).toBeInTheDocument()
+    // Matcher flexible: el nombre del equipo se renderiza junto al dorsal ("Olimpia · #9").
+    expect(screen.getAllByText(/Olimpia/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/#9/)).toBeInTheDocument()
+    // Posición realmente jugada.
+    expect(screen.getByText(/Delantero · 12 PJ/)).toBeInTheDocument()
+    // Sin estadísticas individuales cargadas: lo dice, no inventa ceros.
+    expect(screen.getByText(/Sin estadísticas individuales por partido/)).toBeInTheDocument()
+    // Partido a partido: aparece el rival del único encuentro.
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Cerro Porteño/)).toBeInTheDocument()
+      },
+      { timeout: 5000 },
+    )
   })
 
   it('muestra la lesión activa cuando existe', async () => {
@@ -96,6 +190,8 @@ describe('PlayerProfilePage', () => {
     mockFetchByUrl({
       '/profile': { ...PROFILE, activeInjury: injury, injuriesCount: 1 },
       '/injuries': [injury],
+      '/career': CAREER,
+      '/match-log': MATCH_LOG,
     })
     renderProfile()
 

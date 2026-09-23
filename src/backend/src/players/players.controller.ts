@@ -27,6 +27,7 @@ import { CreatePlayerDto } from './dto/create-player.dto';
 import { CreateInjuryDto, UpdateInjuryDto } from './dto/injury.dto';
 import { SaveTechnicalRatingsDto } from './dto/save-technical-ratings.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
+import { PlayerCareerService } from './player-career.service';
 import { PlayersService } from './players.service';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'players');
@@ -46,7 +47,28 @@ export class PlayersController {
   constructor(
     private readonly service: PlayersService,
     private readonly provenance: ProvenanceService,
+    private readonly career: PlayerCareerService,
   ) {}
+
+  // ---------- Planilla / trayectoria ----------
+  /** Trayectoria completa: equipos por los que pasó, totales, desglose por competición y posiciones. */
+  @Get(':id/career')
+  getCareer(@Param('id', ParseIntPipe) id: number) {
+    return this.career.getCareer(id);
+  }
+
+  /** Partido a partido (paginado): qué hizo en cada encuentro. */
+  @Get(':id/match-log')
+  getMatchLog(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.career.getMatchLog(id, {
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
+    });
+  }
 
   @Get()
   list(

@@ -194,3 +194,105 @@ export type PlayerProfile = {
   activeInjury: PlayerInjury | null
   injuriesCount: number
 }
+
+// ---------------------------------------------------------------- Planilla / trayectoria
+// Todo lo que el jugador realmente hizo, derivado de datos existentes (ver
+// backend: players/player-career.service.ts). Nada se inventa: las secciones sin
+// filas llegan vacías y `statTotals` llega en null si la fuente nunca cargó nada.
+
+export type PlayerTeamStint = {
+  id: number
+  teamId: number
+  teamName: string
+  teamLogoUrl: string | null
+  startDate: string
+  endDate: string | null
+  squadNumber: number | null
+  note: string | null
+  /** true = equipo actual (sin fecha de fin) */
+  current: boolean
+}
+
+export type PlayerCareerTotals = {
+  matches: number
+  starts: number
+  substituteAppearances: number
+  minutes: number
+  goals: number
+  ownGoals: number
+  assists: number
+  yellowCards: number
+  redCards: number
+}
+
+export type PlayerCompetitionLine = {
+  competitionId: number
+  competitionName: string
+  matches: number
+  minutes: number
+  goals: number
+  assists: number
+  yellowCards: number
+  redCards: number
+}
+
+export type PlayerPositionLine = { position: string; matches: number }
+
+export type PlayerStatTotals = {
+  matchesWithStats: number
+  shots: number | null
+  shotsOnTarget: number | null
+  passes: number | null
+  passesCompleted: number | null
+  touches: number | null
+  tackles: number | null
+  tacklesWon: number | null
+  interceptions: number | null
+  clearances: number | null
+  recoveries: number | null
+  duelsGroundWon: number | null
+  duelsGroundLost: number | null
+  duelsAerialWon: number | null
+  duelsAerialLost: number | null
+  blocksShots: number | null
+  blocksPasses: number | null
+}
+
+export type PlayerCareer = {
+  teamHistory: PlayerTeamStint[]
+  totals: PlayerCareerTotals
+  byCompetition: PlayerCompetitionLine[]
+  positions: PlayerPositionLine[]
+  statTotals: PlayerStatTotals | null
+}
+
+export type PlayerMatchLogEntry = {
+  matchId: number
+  matchDate: string
+  status: string
+  competitionName: string
+  seasonLabel: string | null
+  round: string | null
+  teamId: number
+  teamName: string
+  isHome: boolean
+  opponentName: string
+  homeScore: number | null
+  awayScore: number | null
+  isStarting: boolean
+  position: string | null
+  shirtNumber: number | null
+  minutesPlayed: number | null
+  goals: number
+  ownGoals: number
+  assists: number
+  yellowCards: number
+  redCards: number
+}
+
+export type PlayerMatchLog = {
+  items: PlayerMatchLogEntry[]
+  total: number
+  page: number
+  pageSize: number
+}
