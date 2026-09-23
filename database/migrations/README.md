@@ -39,6 +39,15 @@ limpiando datos de prueba tras un smoke test del motor de migración: un `DELETE
 sencillo lo disparó). No afecta a la app (el driver `mssql` ya pone `QUOTED_IDENTIFIER ON` por
 conexión) -- sólo a scripts/consultas sueltas por `sqlcmd`.
 
+## ⚠️ `AUTO_CLOSE` debe estar desactivado (migración 058)
+
+Con `AUTO_CLOSE ON` la base se apaga cuando se cierra su última conexión, y el pool de Node cierra
+las conexiones ociosas a los 30 s. La primera petición tras un rato sin uso tenía que reabrir la base
+y superaba el `requestTimeout` de 15 s: un 500 intermitente en cualquier pantalla (síntoma en el log
+de SQL Server: `Starting up database 'LeagueCore'` repetido). Verificar con
+`SELECT name, is_auto_close_on FROM sys.databases WHERE name = 'LeagueCore'` (debe dar `0`). Una base
+creada desde `000_create_database.sql` en una instancia nueva puede traerlo activo: aplicar `058`.
+
 ## Orden de aplicación
 
 | Script | Contenido |

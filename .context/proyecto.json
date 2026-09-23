@@ -17,10 +17,10 @@
   ],
   "LAST_CONTEXT_UPDATE": "2026-09-14",
   "LAST_VALIDATION": {
-    "date": "NO DETERMINADO",
-    "revision": "NO DETERMINADO",
-    "command": "NO DETERMINADO",
-    "result": "NO DETERMINADO"
+    "date": "2026-09-23",
+    "revision": "22a26d2 + cambios locales sin commit (migración 058, README de migraciones, MatchVideoTab.test.tsx)",
+    "command": "Local (Windows, SQL Server 2019 Express, backend por nest start --watch): tsc --noEmit backend y frontend (-p tsconfig.app.json), npm run lint, jest, vitest run x5, recorrido de los 138 GET de la API con admin",
+    "result": "OK: tsc sin errores, lint solo avisos, jest 111/111, vitest 51/51 (5 corridas), 138 GET sin 5xx ni lentos (>1.5 s). Corregido: AUTO_CLOSE de la base, memoria mínima de SQL Server, migración 057 pendiente, dependencias helmet/throttler sin instalar y test intermitente de MatchVideoTab"
   },
   "LAST_DEPLOY": "NO DETERMINADO",
   "EXTERNAL_DEPENDENCIES": "Node y SQL Server.",
