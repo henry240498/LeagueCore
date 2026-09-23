@@ -18,6 +18,7 @@ import {
   type MatchListResponse,
   type MatchTeamStats,
   type TimelineEvent,
+  type Venue,
 } from '../../types/match'
 import MatchChartsSection from './MatchChartsSection'
 import MatchMapsSection from './MatchMapsSection'
@@ -353,9 +354,34 @@ function LiveEventToasts({
 
 // ------------------------------------------------------- Información adicional / multimedia (FASE 13)
 function MatchExtraInfo({ match }: { match: Match }) {
+  // Ciudad y capacidad viven en dbo.venues, no en el partido: se piden sólo si hay estadio.
+  const [venue, setVenue] = useState<Venue | null>(null)
+  useEffect(() => {
+    if (match.venueId == null) {
+      setVenue(null)
+      return
+    }
+    api.get<Venue>(`/venues/${match.venueId}`).then(setVenue).catch(() => setVenue(null))
+  }, [match.venueId])
+
   const rows: { label: string; value: string }[] = []
   if (match.venueName) rows.push({ label: 'Estadio', value: match.venueName })
-  if (match.attendance != null) rows.push({ label: 'Asistencia', value: match.attendance.toLocaleString('es-PY') })
+  if (venue?.city) {
+    rows.push({ label: 'Ciudad', value: [venue.city, venue.country].filter(Boolean).join(', ') })
+  }
+  if (venue?.capacity != null) {
+    rows.push({ label: 'Capacidad', value: venue.capacity.toLocaleString('es-PY') })
+  }
+  if (match.attendance != null) {
+    rows.push({ label: 'Asistencia', value: match.attendance.toLocaleString('es-PY') })
+    // Ocupación real: sólo si hay capacidad cargada (métrica derivada, no inventada).
+    if (venue?.capacity) {
+      rows.push({
+        label: 'Ocupación',
+        value: `${Math.round((match.attendance / venue.capacity) * 100)}%`,
+      })
+    }
+  }
   if (match.weatherCondition) rows.push({ label: 'Clima', value: match.weatherCondition })
   if (match.temperatureCelsius != null) rows.push({ label: 'Temperatura', value: `${match.temperatureCelsius}°C` })
   if (match.windKmh != null) rows.push({ label: 'Viento', value: `${match.windKmh} km/h` })
@@ -445,7 +471,31 @@ function PostMatchSummary({ match, timeline }: { match: Match; timeline: Timelin
 function TimelineSection({ match, timeline, isLive }: { match: Match; timeline: TimelineEvent[]; isLive: boolean }) {
   const [typeFilter, setTypeFilter] = useState('all')
   const [teamFilter, setTeamFilter] = useState<'all' | 'home' | 'away'>('all')
+  const [periodFilter, setPeriodFilter] = useState('all')
   const bottomRef = useRef<HTMLDivElement>(null)
+  // Evento enlazado por URL (#evento-...): se resalta y se hace scroll hasta él una vez cargado.
+  const [targetedAnchor, setTargetedAnchor] = useState<string | null>(null)
+
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '')
+    if (!hash.startsWith('evento-') || timeline.length === 0) return
+    setTargetedAnchor(hash)
+    // Se espera al pintado para que el nodo exista antes de hacer scroll.
+    const id = setTimeout(() => {
+      document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 100)
+    return () => clearTimeout(id)
+  }, [timeline.length])
+
+  // Períodos realmente presentes en este partido (no se ofrece filtrar por uno que no ocurrió).
+  const availablePeriods = useMemo(() => {
+    const seen: string[] = []
+    for (const e of timeline) {
+      const p = e.period ?? 'first_half'
+      if (!seen.includes(p)) seen.push(p)
+    }
+    return seen
+  }, [timeline])
 
   const filtered = useMemo(() => {
     const allowed = EVENT_FILTERS.find((f) => f.key === typeFilter)?.types ?? []
@@ -456,9 +506,10 @@ function TimelineSection({ match, timeline, isLive }: { match: Match; timeline: 
         if (teamFilter === 'home') return e.teamId === match.homeTeamId
         return e.teamId === match.awayTeamId
       })
+      .filter((e) => periodFilter === 'all' || (e.period ?? 'first_half') === periodFilter)
       .slice()
       .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0) || a.id - b.id)
-  }, [timeline, typeFilter, teamFilter, match.homeTeamId, match.awayTeamId])
+  }, [timeline, typeFilter, teamFilter, periodFilter, match.homeTeamId, match.awayTeamId])
 
   // Agrupación por período para separar 1T / 2T / prórroga.
   const groups = useMemo(() => {
@@ -511,6 +562,21 @@ function TimelineSection({ match, timeline, isLive }: { match: Match; timeline: 
         <FilterChip active={teamFilter === 'away'} onClick={() => setTeamFilter('away')}>
           {match.awayTeamName ?? 'Visitante'}
         </FilterChip>
+
+        {/* Filtro por período: sólo se ofrecen los que realmente tuvieron eventos. */}
+        {availablePeriods.length > 1 && (
+          <>
+            <span className="mx-1 w-px bg-slate-200" />
+            <FilterChip active={periodFilter === 'all'} onClick={() => setPeriodFilter('all')}>
+              Todo el partido
+            </FilterChip>
+            {availablePeriods.map((p) => (
+              <FilterChip key={p} active={periodFilter === p} onClick={() => setPeriodFilter(p)}>
+                {EVENT_PERIOD_LABELS[p] ?? p}
+              </FilterChip>
+            ))}
+          </>
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -527,22 +593,28 @@ function TimelineSection({ match, timeline, isLive }: { match: Match; timeline: 
               <ul className="space-y-1.5">
                 {events.map((e, i) => {
                   const isLast = isLive && gi === groups.length - 1 && i === events.length - 1
+                  const anchor = eventAnchor(e)
+                  const isTargeted = targetedAnchor === anchor
                   return (
                     <li
-                      key={`${e.type}-${e.id}`}
-                      className={`flex items-start gap-3 rounded-lg px-3 py-2 text-sm ${
+                      key={anchor}
+                      id={anchor}
+                      className={`group flex items-start gap-3 rounded-lg px-3 py-2 text-sm scroll-mt-24 ${
                         e.type === 'goal' ? 'bg-emerald-50' : 'bg-slate-50'
-                      } ${isLast ? 'ring-2 ring-emerald-400' : ''}`}
+                      } ${isLast ? 'ring-2 ring-emerald-400' : ''} ${
+                        isTargeted ? 'ring-2 ring-blue-500' : ''
+                      }`}
                     >
                       <span className="w-10 shrink-0 text-right font-bold tabular-nums text-slate-500">
                         {e.minute ?? '?'}
                         {e.minuteExtra ? `+${e.minuteExtra}` : ''}′
                       </span>
                       <span className="shrink-0">{eventIcon(e)}</span>
-                      <span className="min-w-0">
+                      <span className="min-w-0 flex-1">
                         <span className={e.type === 'goal' ? 'font-semibold' : ''}>{eventTitle(e)}</span>
                         {e.teamName ? <span className="text-slate-400"> · {e.teamName}</span> : ''}
                       </span>
+                      <EventShareButton anchor={anchor} />
                     </li>
                   )
                 })}
@@ -553,6 +625,37 @@ function TimelineSection({ match, timeline, isLive }: { match: Match; timeline: 
         </div>
       )}
     </section>
+  )
+}
+
+/** Ancla estable de un evento, para poder enlazarlo: /partidos/123#evento-goal-45 */
+function eventAnchor(e: TimelineEvent): string {
+  return `evento-${e.type}-${e.id}`
+}
+
+/** Copia el enlace directo a un evento concreto del partido. */
+function EventShareButton({ anchor }: { anchor: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      const { origin, pathname } = window.location
+      await navigator.clipboard.writeText(`${origin}${pathname}#${anchor}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // portapapeles no disponible; se ignora
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      aria-label="Copiar enlace a este evento"
+      title="Copiar enlace a este evento"
+      className="shrink-0 rounded px-1 text-xs text-slate-400 opacity-0 transition hover:bg-slate-200 hover:text-slate-600 focus:opacity-100 group-hover:opacity-100"
+    >
+      {copied ? '✓' : '🔗'}
+    </button>
   )
 }
 
