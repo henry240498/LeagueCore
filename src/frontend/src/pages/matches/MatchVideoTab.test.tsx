@@ -80,13 +80,17 @@ describe('MatchVideoTab', () => {
       },
       { timeout: 5000 },
     )
+    // Se espera el timestamp del sync (lo que realmente se verifica) y no el texto "Recuperación":
+    // sin etiquetas cargadas, el botón "Cargar etiquetas por defecto (Gol, Presión, Recuperación…)"
+    // ya contiene esa palabra desde el primer render, así que la espera se cumplía antes de que
+    // llegara el sync y el test fallaba de forma intermitente bajo carga.
     await waitFor(
       () => {
-        expect(screen.getByText(/Recuperación/)).toBeInTheDocument()
+        expect(screen.getByText('37:42')).toBeInTheDocument()
       },
       { timeout: 5000 },
     )
-    expect(screen.getByText('37:42')).toBeInTheDocument()
+    expect(screen.getByText(/🏷️ Recuperación/)).toBeInTheDocument()
   })
 
   it('ofrece agregar video cuando no hay ninguno', async () => {
