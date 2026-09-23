@@ -368,3 +368,49 @@ export type Venue = {
   capacity: number | null
   openedYear: number | null
 }
+
+// Estadísticas individuales de un jugador en un partido (dbo.match_player_stats).
+// Igual criterio que MatchTeamStats: null = "sin datos", nunca 0.
+export type MatchPlayerStats = {
+  playerId: number
+  teamId: number
+  playerFullName: string | null
+  shirtNumber: number | null
+  shots: number | null
+  shotsOnTarget: number | null
+  passes: number | null
+  passesCompleted: number | null
+  touches: number | null
+  tackles: number | null
+  tacklesWon: number | null
+  interceptions: number | null
+  clearances: number | null
+  recoveries: number | null
+  duelsGroundWon: number | null
+  duelsGroundLost: number | null
+  duelsAerialWon: number | null
+  duelsAerialLost: number | null
+  blocksShots: number | null
+  blocksPasses: number | null
+  dataSource: string
+  updatedAt: string
+}
+
+export const PLAYER_STAT_FIELDS: { key: keyof MatchPlayerStats; label: string }[] = [
+  { key: 'shots', label: 'Remates' },
+  { key: 'shotsOnTarget', label: 'Remates al arco' },
+  { key: 'passes', label: 'Pases' },
+  { key: 'passesCompleted', label: 'Pases completados' },
+  { key: 'touches', label: 'Toques' },
+  { key: 'tackles', label: 'Entradas' },
+  { key: 'tacklesWon', label: 'Entradas ganadas' },
+  { key: 'interceptions', label: 'Intercepciones' },
+  { key: 'clearances', label: 'Despejes' },
+  { key: 'recoveries', label: 'Recuperaciones' },
+  { key: 'duelsGroundWon', label: 'Duelos suelo ganados' },
+  { key: 'duelsGroundLost', label: 'Duelos suelo perdidos' },
+  { key: 'duelsAerialWon', label: 'Duelos aéreos ganados' },
+  { key: 'duelsAerialLost', label: 'Duelos aéreos perdidos' },
+  { key: 'blocksShots', label: 'Bloqueos de remate' },
+  { key: 'blocksPasses', label: 'Bloqueos de pase' },
+]

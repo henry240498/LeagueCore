@@ -4,6 +4,7 @@ import { ApiError } from '../../context/AuthContext'
 import { api } from '../../services/api'
 import MatchScoreboardHeader from '../../components/pitch/MatchScoreboardHeader'
 import { useMatchLive } from '../../hooks/useMatchLive'
+import MatchPlayerStatsEditor from './MatchPlayerStatsEditor'
 // TacticalViewTab NO se carga con lazy: el reporte de partido lo importa de forma estática, así que
 // separarlo en un chunk aparte sería inefectivo (quedaría igual en el bundle principal).
 import TacticalViewTab from './TacticalViewTab'
@@ -1270,6 +1271,13 @@ function StatsTab({ match, onError }: { match: Match; onError: (m: string) => vo
         <button type="button" onClick={() => save(match.awayTeamId, awayForm)} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
           Guardar {match.awayTeamName}
         </button>
+      </div>
+
+      {/* Estadísticas individuales: alimentan la planilla del jugador y la comparación del Match
+          Center, que hasta ahora no tenían forma de cargarse. */}
+      <div className="mt-8 border-t border-slate-200 pt-6">
+        <h3 className="mb-3 font-bold">Estadísticas por jugador</h3>
+        <MatchPlayerStatsEditor match={match} onError={onError} />
       </div>
     </Card>
   )

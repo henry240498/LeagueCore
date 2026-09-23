@@ -18,6 +18,7 @@ import { CreateMatchDto } from './dto/create-match.dto';
 import { SetLineupPositionDto } from './dto/set-lineup-position.dto';
 import { SetMatchFormationDto } from './dto/set-match-formation.dto';
 import { SetPeriodScoreDto } from './dto/set-period-score.dto';
+import { SetPlayerStatsDto } from './dto/set-player-stats.dto';
 import { SetTeamStatsDto } from './dto/set-team-stats.dto';
 import { UpdateMatchDto } from './dto/update-match.dto';
 import { MatchEventsService } from './match-events.service';
@@ -343,5 +344,20 @@ export class MatchesController {
     @Body() dto: SetTeamStatsDto,
   ) {
     return this.stats.setForTeam(id, teamId, dto);
+  }
+
+  // ---------- Estadísticas individuales (por jugador) ----------
+  @Get(':id/player-stats')
+  listPlayerStats(@Param('id', ParseIntPipe) id: number) {
+    return this.stats.listPlayerStats(id);
+  }
+
+  @Put(':id/player-stats/:playerId')
+  setPlayerStats(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('playerId', ParseIntPipe) playerId: number,
+    @Body() dto: SetPlayerStatsDto,
+  ) {
+    return this.stats.setForPlayer(id, playerId, dto);
   }
 }
