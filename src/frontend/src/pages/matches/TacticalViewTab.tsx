@@ -215,8 +215,8 @@ export default function TacticalViewTab({ match, onError }: { match: Match; onEr
                   backgroundPhotoUrl={match.venuePhotoUrl}
                   onPlayerClick={(pid) => setSelected(lineups.find((l) => l.playerId === pid) ?? null)}
                   extraLayer={shotsLayer}
-                  home={{ starters: showHome ? homeStarters : [], formationShape: homeFormation?.formationShape ?? null, color: HOME_COLOR, mirror: false }}
-                  away={{ starters: showAway ? awayStarters : [], formationShape: awayFormation?.formationShape ?? null, color: AWAY_COLOR, mirror: mirrorAway }}
+                  home={{ starters: showHome ? homeStarters : [], formationShape: homeFormation?.formationShape ?? null, color: HOME_COLOR, mirror: false, logoUrl: match.homeTeamLogoUrl }}
+                  away={{ starters: showAway ? awayStarters : [], formationShape: awayFormation?.formationShape ?? null, color: AWAY_COLOR, mirror: mirrorAway, logoUrl: match.awayTeamLogoUrl }}
                 />
                 {showShots && visibleShots.length === 0 && (
                   <p className="mt-2 text-center text-xs text-slate-400">Sin tiros con coordenadas cargadas para este partido.</p>
@@ -271,8 +271,8 @@ export default function TacticalViewTab({ match, onError }: { match: Match; onEr
                   backgroundPhotoUrl={match.venuePhotoUrl}
                   onPlayerClick={(pid) => setSelected(lineups.find((l) => l.playerId === pid) ?? null)}
                   onMove={handleMove}
-                  home={{ starters: homeStarters, formationShape: homeFormation?.formationShape ?? null, color: HOME_COLOR, mirror: false }}
-                  away={{ starters: awayStarters, formationShape: awayFormation?.formationShape ?? null, color: AWAY_COLOR, mirror: true }}
+                  home={{ starters: homeStarters, formationShape: homeFormation?.formationShape ?? null, color: HOME_COLOR, mirror: false, logoUrl: match.homeTeamLogoUrl }}
+                  away={{ starters: awayStarters, formationShape: awayFormation?.formationShape ?? null, color: AWAY_COLOR, mirror: true, logoUrl: match.awayTeamLogoUrl }}
                 />
               </div>
 

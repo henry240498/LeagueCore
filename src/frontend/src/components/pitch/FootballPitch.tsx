@@ -12,10 +12,17 @@ export function dataYToSvg(y: number) {
   return y * VB_HEIGHT_RATIO
 }
 
+/** Escudo mostrado como marca de agua sobre la mitad de cancha del equipo. */
+export type PitchWatermark = {
+  url?: string | null
+  half: 'top' | 'bottom'
+}
+
 export default function FootballPitch({
   children,
   onPitchClick,
   backgroundPhotoUrl,
+  watermarks,
 }: {
   children?: ReactNode
   onPitchClick?: (x: number, y: number) => void
@@ -24,8 +31,14 @@ export default function FootballPitch({
   // foto ni se deja la cancha vacía). Va detrás de las líneas + una capa oscura semitransparente
   // para que las líneas blancas se sigan viendo legibles sobre cualquier foto.
   backgroundPhotoUrl?: string | null
+  // Marca de agua: el escudo real de cada equipo sobre su mitad (look de transmisión). Nunca se
+  // inventa un escudo: si el equipo no tiene logo cargado, esa mitad simplemente no lleva marca.
+  watermarks?: PitchWatermark[]
 }) {
   const resolvedBackground = resolveAssetUrl(backgroundPhotoUrl)
+  const resolvedWatermarks = (watermarks ?? [])
+    .map((w) => ({ half: w.half, url: resolveAssetUrl(w.url) }))
+    .filter((w): w is { half: 'top' | 'bottom'; url: string } => !!w.url)
 
   const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!onPitchClick) return
@@ -43,12 +56,44 @@ export default function FootballPitch({
       style={resolvedBackground ? undefined : { background: 'linear-gradient(180deg, #2f9e44 0%, #37b24d 50%, #2f9e44 100%)' }}
       onClick={handleClick}
     >
+      <defs>
+        {/* Sombra suave de los jugadores: los despega del césped en vez de dejarlos "pegados". */}
+        <filter id="lc-player-shadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="0.6" stdDeviation="0.7" floodColor="#000" floodOpacity="0.45" />
+        </filter>
+        {/* Viñeta: oscurece apenas los bordes para dar profundidad. */}
+        <radialGradient id="lc-pitch-vignette" cx="50%" cy="50%" r="75%">
+          <stop offset="60%" stopColor="#000" stopOpacity="0" />
+          <stop offset="100%" stopColor="#000" stopOpacity="0.28" />
+        </radialGradient>
+      </defs>
+
       {resolvedBackground && (
         <>
           <image href={resolvedBackground} x={0} y={0} width={VB_WIDTH} height={VB_HEIGHT} preserveAspectRatio="xMidYMid slice" />
           <rect x={0} y={0} width={VB_WIDTH} height={VB_HEIGHT} fill="rgba(6, 40, 18, 0.45)" />
         </>
       )}
+
+      {/* Marca de agua del escudo sobre la mitad de cada equipo. Va detrás de las líneas y de los
+          jugadores, con opacidad baja para no competir con la información. */}
+      {resolvedWatermarks.map((w) => {
+        const size = 34
+        const cy = w.half === 'top' ? VB_HEIGHT * 0.26 : VB_HEIGHT * 0.74
+        return (
+          <image
+            key={w.half}
+            href={w.url}
+            x={VB_WIDTH / 2 - size / 2}
+            y={cy - size / 2}
+            width={size}
+            height={size}
+            preserveAspectRatio="xMidYMid meet"
+            opacity={0.1}
+            style={{ pointerEvents: 'none' }}
+          />
+        )
+      })}
 
       {/* Franjas de césped (sólo con el fondo genérico -- sobre una foto real no suman nada) */}
       {!resolvedBackground &&
@@ -91,6 +136,16 @@ export default function FootballPitch({
           </g>
         )
       })}
+
+      {/* Viñeta por encima del césped pero DEBAJO de los jugadores, para no apagarlos. */}
+      <rect
+        x={0}
+        y={0}
+        width={VB_WIDTH}
+        height={VB_HEIGHT}
+        fill="url(#lc-pitch-vignette)"
+        style={{ pointerEvents: 'none' }}
+      />
 
       {children}
     </svg>

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import FootballPitch, { dataYToSvg } from './FootballPitch'
+import FootballPitch, { dataYToSvg, type PitchWatermark } from './FootballPitch'
 import PlayerMarker, { type PitchPlayer } from './PlayerMarker'
 import type { MatchLineupEntry } from '../../types/match'
 
@@ -80,6 +80,8 @@ export type PitchTeamInput = {
   formationShape: string | null
   color: string
   mirror: boolean
+  /** Escudo real del equipo, usado como marca de agua sobre su mitad. Opcional: sin logo, sin marca. */
+  logoUrl?: string | null
 }
 
 export default function InteractiveFootballPitch({
@@ -123,10 +125,24 @@ export default function InteractiveFootballPitch({
 
   const players = useMemo(() => [...buildPlayers(home), ...(away ? buildPlayers(away) : [])], [home, away, editable])
 
+  // Marca de agua: el local ocupa la mitad inferior (su arco está abajo, y=92) y el visitante la
+  // superior cuando está espejado. Si un equipo no tiene escudo cargado, esa mitad queda sin marca.
+  const watermarks: PitchWatermark[] = [
+    { url: home.logoUrl, half: home.mirror ? 'top' : 'bottom' },
+    ...(away ? [{ url: away.logoUrl, half: away.mirror ? ('top' as const) : ('bottom' as const) }] : []),
+  ]
+
   return (
-    <FootballPitch backgroundPhotoUrl={backgroundPhotoUrl}>
-      {players.map((p) => (
-        <PlayerMarker key={p.lineupId} player={p} editable={editable} onClick={onPlayerClick} onMove={onMove} />
+    <FootballPitch backgroundPhotoUrl={backgroundPhotoUrl} watermarks={watermarks}>
+      {players.map((p, i) => (
+        <PlayerMarker
+          key={p.lineupId}
+          player={p}
+          editable={editable}
+          onClick={onPlayerClick}
+          onMove={onMove}
+          index={i}
+        />
       ))}
       {extraLayer}
     </FootballPitch>

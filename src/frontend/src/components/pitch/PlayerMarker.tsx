@@ -19,11 +19,14 @@ export default function PlayerMarker({
   editable,
   onClick,
   onMove,
+  index = 0,
 }: {
   player: PitchPlayer
   editable: boolean
   onClick: (playerId: number) => void
   onMove?: (lineupId: number, x: number, y: number) => void
+  /** Orden de aparición: escalona la animación de entrada para que salgan uno tras otro. */
+  index?: number
 }) {
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
   const draggingRef = useRef(false)
@@ -74,6 +77,9 @@ export default function PlayerMarker({
 
   const svgY = dataYToSvg(y)
   const photoUrl = resolveAssetUrl(player.photoUrl)
+  // Se muestra el apellido (último token) y se acota para que la placa no invada a otro jugador.
+  const lastName = player.name.trim().split(/\s+/).slice(-1)[0] ?? player.name
+  const shortName = lastName.length > 12 ? `${lastName.slice(0, 11)}…` : lastName
 
   return (
     <g
@@ -94,39 +100,75 @@ export default function PlayerMarker({
       <title>
         {player.name} · #{player.shirtNumber ?? '-'}
       </title>
-      {photoUrl ? (
-        <>
-          <defs>
-            <clipPath id={`photo-clip-${player.lineupId}`}>
-              <circle r={4} />
-            </clipPath>
-          </defs>
-          <image
-            href={photoUrl}
-            x={-4}
-            y={-4}
-            width={8}
-            height={8}
-            preserveAspectRatio="xMidYMid slice"
-            clipPath={`url(#photo-clip-${player.lineupId})`}
+      {/* Grupo interior: sólo acá vive la animación de entrada (opacidad + escala), para no
+          interferir con el translate del grupo exterior ni con el arrastre. Mientras se arrastra
+          se desactiva, si no el jugador "reaparecería" en cada re-render. */}
+      <g
+        className={dragPos ? undefined : 'lc-player-enter'}
+        style={dragPos ? undefined : { animationDelay: `${Math.min(index, 22) * 45}ms` }}
+      >
+        {/* Sombra proyectada en el césped: da sensación de volumen. */}
+        <ellipse cx={0} cy={4.6} rx={3.4} ry={1.1} fill="rgba(0,0,0,0.3)" />
+
+        <g filter="url(#lc-player-shadow)">
+          {photoUrl ? (
+            <>
+              <defs>
+                <clipPath id={`photo-clip-${player.lineupId}`}>
+                  <circle r={4} />
+                </clipPath>
+              </defs>
+              <circle r={4.3} fill="white" opacity={0.9} />
+              <image
+                href={photoUrl}
+                x={-4}
+                y={-4}
+                width={8}
+                height={8}
+                preserveAspectRatio="xMidYMid slice"
+                clipPath={`url(#photo-clip-${player.lineupId})`}
+              />
+              <circle r={4} fill="none" stroke={player.teamColor} strokeWidth={0.9} />
+              <circle cx={2.9} cy={-2.9} r={1.7} fill={player.teamColor} stroke="white" strokeWidth={0.35} />
+              <text x={2.9} y={-2.9} textAnchor="middle" dy={0.62} fontSize={1.9} fontWeight={700} fill="white">
+                {player.shirtNumber ?? '-'}
+              </text>
+            </>
+          ) : (
+            <>
+              <circle r={4} fill={player.teamColor} stroke="white" strokeWidth={0.5} />
+              {/* Brillo superior sutil: aspecto de ficha, no de círculo plano. */}
+              <ellipse cx={0} cy={-1.5} rx={3.1} ry={1.9} fill="white" opacity={0.14} />
+              <text textAnchor="middle" dy={1.4} fontSize={3.6} fontWeight={700} fill="white">
+                {player.shirtNumber ?? '-'}
+              </text>
+            </>
+          )}
+        </g>
+
+        {/* Nombre sobre una placa semitransparente: legible sobre césped o foto de estadio. */}
+        <g>
+          <rect
+            x={-Math.max(5.5, shortName.length * 0.78)}
+            y={5.2}
+            width={Math.max(11, shortName.length * 1.56)}
+            height={3.6}
+            rx={1.8}
+            fill="rgba(0,0,0,0.55)"
           />
-          <circle r={4} fill="none" stroke={player.teamColor} strokeWidth={0.8} />
-          <circle cx={2.9} cy={-2.9} r={1.6} fill={player.teamColor} stroke="white" strokeWidth={0.3} />
-          <text x={2.9} y={-2.9} textAnchor="middle" dy={0.6} fontSize={1.9} fontWeight={700} fill="white">
-            {player.shirtNumber ?? '-'}
+          <text
+            textAnchor="middle"
+            y={7.1}
+            dy={0.65}
+            fontSize={2.5}
+            fontWeight={600}
+            fill="white"
+            style={{ letterSpacing: '0.02em' }}
+          >
+            {shortName}
           </text>
-        </>
-      ) : (
-        <>
-          <circle r={4} fill={player.teamColor} stroke="white" strokeWidth={0.4} />
-          <text textAnchor="middle" dy={1.4} fontSize={3.6} fontWeight={700} fill="white">
-            {player.shirtNumber ?? '-'}
-          </text>
-        </>
-      )}
-      <text textAnchor="middle" y={7} fontSize={2.6} fill="white" style={{ paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.55)', strokeWidth: 0.6 }}>
-        {player.name.split(' ').slice(-1)[0]}
-      </text>
+        </g>
+      </g>
     </g>
   )
 }

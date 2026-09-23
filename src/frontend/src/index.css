@@ -16,3 +16,39 @@ body {
 #root {
   min-height: 100svh;
 }
+
+/* ---------------------------------------------------------------------------
+   Aparición de jugadores en la cancha (SVG).
+   El marcador exterior <g> ya usa `transform: translate(...)` con transición para
+   moverse; por eso la animación de entrada va en un <g> INTERIOR y sólo toca
+   opacidad y escala: así no pelea con el posicionamiento ni con el arrastre.
+   El retardo por jugador se pasa inline (animation-delay) para escalonar la entrada.
+--------------------------------------------------------------------------- */
+@keyframes lc-player-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.lc-player-enter {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: lc-player-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Accesibilidad: quien pide menos movimiento ve los jugadores ya colocados. */
+@media (prefers-reduced-motion: reduce) {
+  .lc-player-enter {
+    animation: none;
+    opacity: 1;
+  }
+}
