@@ -45,6 +45,10 @@ No copiar versiones, estado de Git o resultados históricos como si fueran hecho
 - [base-datos.md](<base-datos.md>)
 - [seguridad.md](<seguridad.md>)
 
-## Trabajos en curso
-- [match-center-plan.md](<match-center-plan.md>) — Reinvención de la vista de partido (Match Center) por fases. Estado: FASE 0 (auditoría) completada.
+## Funcionalidades documentadas
+- [match-center-plan.md](<match-center-plan.md>) — Reinvención de la vista de partido (Match Center). **Estado: CERRADO** (fases 0–16 + QA final). Auditoría, mapa de endpoints y datos faltantes reales.
+- [match-center-continuar-aqui.md](<match-center-continuar-aqui.md>) — Handoff del Match Center (contexto autosuficiente para retomarlo).
+- [planilla-jugador.md](<planilla-jugador.md>) — Trayectoria e historial del jugador: de dónde sale cada dato y qué falta (cargar `match_player_stats`).
+- [cancha-visual.md](<cancha-visual.md>) — Convenciones de la cancha SVG, aparición animada y marca de agua. **Leer antes de tocar `components/pitch/`** (hay una trampa que rompe el arrastre).
+- [deuda-tecnica.md](<deuda-tecnica.md>) — Deuda técnica: resuelto, auditado y descartado, y pendiente.
 <!-- END ECOSYSTEM DETAILS -->
