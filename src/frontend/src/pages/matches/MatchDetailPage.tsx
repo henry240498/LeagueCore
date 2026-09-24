@@ -4,6 +4,7 @@ import { ApiError } from '../../context/AuthContext'
 import { api } from '../../services/api'
 import MatchScoreboardHeader from '../../components/pitch/MatchScoreboardHeader'
 import { useMatchLive } from '../../hooks/useMatchLive'
+import MatchDataImport from './MatchDataImport'
 import MatchPlayerStatsEditor from './MatchPlayerStatsEditor'
 // TacticalViewTab NO se carga con lazy: el reporte de partido lo importa de forma estática, así que
 // separarlo en un chunk aparte sería inefectivo (quedaría igual en el bundle principal).
@@ -1278,6 +1279,13 @@ function StatsTab({ match, onError }: { match: Match; onError: (m: string) => vo
       <div className="mt-8 border-t border-slate-200 pt-6">
         <h3 className="mb-3 font-bold">Estadísticas por jugador</h3>
         <MatchPlayerStatsEditor match={match} onError={onError} />
+      </div>
+
+      {/* Datos avanzados: xG/métricas, posiciones para mapa de calor y físico (GPS). Van por lote
+          porque son cientos/miles de filas por partido. */}
+      <div className="mt-8 border-t border-slate-200 pt-6">
+        <h3 className="mb-3 font-bold">Importar datos avanzados</h3>
+        <MatchDataImport match={match} onError={onError} />
       </div>
     </Card>
   )

@@ -18,6 +18,31 @@
 | **Fallos de red invisibles** | El frontend descarta el error en ~130 llamadas (`.catch(() => {})` o caída a estado vacío): con la API caída el usuario sólo veía secciones vacías, sin distinguir "no hay datos" de "falló". Se resolvió en **un solo punto** (`api.ts`, por donde pasan todas las peticiones) + `GlobalErrorToasts`, **sin tocar ningún call site**. Sólo avisa fallos de red y 5xx; los 4xx son respuestas esperadas del negocio. |
 | **Emojis sin texto accesible** | Los decorativos pasan a `aria-hidden`; los que comunican información (cabeceras de tarjetas, columna de selección, indicadores de amarilla/roja/sustitución) reciben `aria-label`. |
 
+## ✅ Tablas que no tenían forma de cargarse — RESUELTO (2026-09-24)
+
+Cuatro tablas del esquema eran **de solo lectura**: nada en el sistema (ni el import engine) podía
+escribirlas, así que las funcionalidades que dependían de ellas estaban condenadas a decir "sin
+datos" para siempre. Ya tienen ruta de escritura:
+
+| Tabla | Cómo se carga | Desbloquea |
+|---|---|---|
+| `match_player_stats` | `PUT /matches/:id/player-stats/:playerId` + editor por jugador en la pestaña "Estadísticas (cargar)" | Planilla del jugador, comparación del Match Center |
+| `match_advanced_metrics` | `POST /matches/:id/import/advanced-metrics` (lote CSV) | xG, xA, PPDA y sus gráficos |
+| `match_player_positions` | `POST /matches/:id/import/player-positions` (lote CSV) | Mapas de calor, posición media |
+| `match_player_physical_stats` | `POST /matches/:id/import/player-physical` (lote CSV) | Datos físicos (GPS) |
+
+**Criterios comunes** (ver `matches/match-import.service.ts`):
+- El jugador debe figurar en la **alineación real** del partido; de ahí se deriva su equipo. Nunca se
+  adivina. Si aparece alguno que no jugó, se **rechaza el lote entero** indicando cuáles, en vez de
+  importar a medias.
+- Métricas y posiciones se **reemplazan** por partido (esas tablas no tienen clave única): reimportar
+  corrige en vez de duplicar. Los datos físicos hacen **upsert** por (partido, jugador), que sí es su PK.
+- Inserción por lotes de 200 filas, todo parametrizado. Tope: 20.000 posiciones por partido.
+- "Vacío = sin datos, nunca 0", igual que en el resto del módulo Partidos.
+
+La carga masiva es por CSV pegado o archivo, porque un partido con muestreo por minuto ronda las
+2.000 posiciones: a mano no es viable. Parser reutilizable en `lib/csv.ts` (`parseCsv`).
+
 ## 🔍 Auditado y descartado (con evidencia)
 
 | Tema | Hallazgo |

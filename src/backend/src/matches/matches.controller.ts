@@ -18,10 +18,16 @@ import { CreateMatchDto } from './dto/create-match.dto';
 import { SetLineupPositionDto } from './dto/set-lineup-position.dto';
 import { SetMatchFormationDto } from './dto/set-match-formation.dto';
 import { SetPeriodScoreDto } from './dto/set-period-score.dto';
+import {
+  ImportAdvancedMetricsDto,
+  ImportPlayerPhysicalDto,
+  ImportPlayerPositionsDto,
+} from './dto/import-match-data.dto';
 import { SetPlayerStatsDto } from './dto/set-player-stats.dto';
 import { SetTeamStatsDto } from './dto/set-team-stats.dto';
 import { UpdateMatchDto } from './dto/update-match.dto';
 import { MatchEventsService } from './match-events.service';
+import { MatchImportService } from './match-import.service';
 import { MatchParticipantsService } from './match-participants.service';
 import { MatchStatsService } from './match-stats.service';
 import { MatchesService } from './matches.service';
@@ -43,6 +49,7 @@ export class MatchesController {
     private readonly events: MatchEventsService,
     private readonly participants: MatchParticipantsService,
     private readonly stats: MatchStatsService,
+    private readonly imports: MatchImportService,
   ) {}
 
   // ---------- Núcleo ----------
@@ -359,5 +366,26 @@ export class MatchesController {
     @Body() dto: SetPlayerStatsDto,
   ) {
     return this.stats.setForPlayer(id, playerId, dto);
+  }
+
+  // ---------- Importación masiva de datos avanzados ----------
+  // Estas tres tablas no tenían forma de cargarse y su volumen descarta hacerlo a mano.
+
+  /** Métricas avanzadas (xG, xA, PPDA…). Reemplaza las del partido: reimportar corrige, no duplica. */
+  @Post(':id/import/advanced-metrics')
+  importAdvancedMetrics(@Param('id', ParseIntPipe) id: number, @Body() dto: ImportAdvancedMetricsDto) {
+    return this.imports.importAdvancedMetrics(id, dto);
+  }
+
+  /** Muestras de posición para mapa de calor / posición media. También reemplaza las del partido. */
+  @Post(':id/import/player-positions')
+  importPlayerPositions(@Param('id', ParseIntPipe) id: number, @Body() dto: ImportPlayerPositionsDto) {
+    return this.imports.importPlayerPositions(id, dto);
+  }
+
+  /** Datos físicos (GPS) por jugador. Upsert por (partido, jugador). */
+  @Post(':id/import/player-physical')
+  importPlayerPhysical(@Param('id', ParseIntPipe) id: number, @Body() dto: ImportPlayerPhysicalDto) {
+    return this.imports.importPlayerPhysical(id, dto);
   }
 }
