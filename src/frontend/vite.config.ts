@@ -3,6 +3,9 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+// VITE_API_TARGET lo inyecta el Centro de Control con el puerto asignado al API; sin ella, el puerto histórico.
+const apiTarget = process.env.VITE_API_TARGET || 'http://localhost:4001'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -16,8 +19,8 @@ export default defineConfig({
     // por un único origen (evita CORS y problemas de cookies sobre HTTPS).
     // El uso local por defecto sigue usando VITE_API_URL absoluto y no toca este proxy.
     proxy: {
-      '/api': { target: 'http://localhost:4001', changeOrigin: true },
-      '/uploads': { target: 'http://localhost:4001', changeOrigin: true },
+      '/api': { target: apiTarget, changeOrigin: true },
+      '/uploads': { target: apiTarget, changeOrigin: true },
     },
   },
   test: {

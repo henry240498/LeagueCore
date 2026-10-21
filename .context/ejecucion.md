@@ -30,3 +30,8 @@ Consultar [registro global](<../../Vaults/jmartinez/Infraestructura/Puertos/regi
 
 ## Cierre de un cambio
 Registrar comando, entorno, revisión, fecha y resultado real en proyecto.json o en el informe de validación del cambio. Actualizar documentación afectada y revisar el diff. No confundir la existencia de CI con un resultado aprobado.
+
+## Puertos con el Centro de Control (2026-10-02)
+- `VITE_API_TARGET`: destino de los proxies `/api` y `/uploads` de Vite (`src/frontend/vite.config.ts`). Por defecto `http://localhost:4001`.
+
+Sin estas variables el proyecto se comporta exactamente igual que antes. El Centro las inyecta al arrancar (ver `C:\Proyectos\Personal\.context\puertos.md`).
